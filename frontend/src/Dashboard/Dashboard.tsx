@@ -56,18 +56,18 @@ function NavControls({ length, limit, ...props }: NavControlsProps) {
                     );
 
                     return (
-                        <li key={i} className={`page-item ${(start+i == currentIndex) ? "active" : ""}`}>
+                        <li key={i} className={`page-item ${(start+i == currentIndex) ? "active" : ""}`} onClick={() => setCurrentIndex(start+i)}>
                             <button style={{minWidth: "35px"}} className="page-link">{start+i+1}</button>
                         </li>
                     )
                 })}
                 <li className="page-item">
-                    <button className={`page-link ${currentIndex+1 == length ? "disabled" : ""}`} onClick={() => setCurrentIndex(currentIndex+1)}>
+                    <button className={`page-link ${currentIndex+1 == length ? "disabled" : ""}`} onClick={() => setCurrentIndex(Math.min(currentIndex+1, length-1))}>
                         <i className={`bi bi-chevron-right`}></i>
                     </button>
                 </li>
                 <li className="page-item">
-                    <button className={`page-link ${currentIndex+1 == length ? "disabled" : ""}`} onClick={() => setCurrentIndex(Math.min(currentIndex-1, length-1))}>
+                    <button className={`page-link ${currentIndex+1 == length ? "disabled" : ""}`} onClick={() => setCurrentIndex(length-1)}>
                         <i className="bi bi-chevron-double-right"></i>
                     </button>
                 </li>
