@@ -1,6 +1,5 @@
 package com.example.spring_demo.transaction;
 
-import com.example.spring_demo.user.User;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -19,18 +18,13 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDate date;
 
-    @ManyToOne
-    @JoinColumn(name="user_id", nullable = false)
-    private User user;
-
     public Transaction() {
     }
 
-    public Transaction(Long id, BigDecimal amount, LocalDate date, User user) {
+    public Transaction(Long id, BigDecimal amount, LocalDate date) {
         this.id = id;
         this.amount = amount;
         this.date = date;
-        this.user = user;
     }
 
     public Long getId() {
@@ -55,13 +49,5 @@ public class Transaction {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
     }
 }
