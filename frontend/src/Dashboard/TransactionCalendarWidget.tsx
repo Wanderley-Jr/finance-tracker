@@ -5,43 +5,43 @@ import "@daypicker/react/style.css";
 import { TransactionList } from "./LastTransactionsWidget";
 
 const transactions = [
-        { amount: 500, date: "2026-10-03" },
-        { amount: -500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-02" },
-        { amount: -500, date: "2026-10-01" },
-        { amount: 500, date: "2026-09-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: -500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-02" },
-        { amount: -500, date: "2026-10-01" },
-        { amount: 500, date: "2026-09-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: -500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-02" },
-        { amount: -500, date: "2026-10-01" },
-        { amount: 500, date: "2026-09-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: -500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-02" },
-        { amount: -500, date: "2026-10-01" },
-        { amount: 500, date: "2026-09-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: -500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-02" },
-        { amount: -500, date: "2026-10-01" },
-        { amount: 500, date: "2026-09-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: -500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-03" },
-        { amount: 500, date: "2026-10-02" },
-        { amount: -500, date: "2026-10-01" },
-        { amount: 500, date: "2026-09-03" },
-    ];
+    { amount: 500, date: "2026-10-03" },
+    { amount: -500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-02" },
+    { amount: -500, date: "2026-10-01" },
+    { amount: 500, date: "2026-09-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: -500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-02" },
+    { amount: -500, date: "2026-10-01" },
+    { amount: 500, date: "2026-09-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: -500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-02" },
+    { amount: -500, date: "2026-10-01" },
+    { amount: 500, date: "2026-09-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: -500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-02" },
+    { amount: -500, date: "2026-10-01" },
+    { amount: 500, date: "2026-09-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: -500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-02" },
+    { amount: -500, date: "2026-10-01" },
+    { amount: 500, date: "2026-09-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: -500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-03" },
+    { amount: 500, date: "2026-10-02" },
+    { amount: -500, date: "2026-10-01" },
+    { amount: 500, date: "2026-09-03" },
+];
 
 export default function TransactionCalendarWidget() {
     const [selectedDate, setSelected] = useState<Date>()
@@ -52,20 +52,44 @@ export default function TransactionCalendarWidget() {
                 <div className="row g-2">
                     <h5 className="col card-title">
                         <i className="bi bi-calendar-fill me-2"></i>
-                        Last transactions
+                        Calendar
                     </h5>
+
+                    <button className={`col-auto btn btn-success ${selectedDate ? "" : "disabled"}`}>
+                        <i className="bi bi-plus-lg me-2"></i>
+                        Add transaction
+                    </button>
                 </div>
 
-                <div className="row">
-                    <DayPicker
-                        className="col"
-                        animate
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelected}
-                    />
+                <div className="row my-3">
+                    <div className="col">
+                        <DayPicker
+                            animate
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelected}
+                            modifiers={{hasTransactions: [
+                                new Date(2026, 9, 6)
+                            ]}}
+                            modifiersClassNames={{
+                                hasTransactions: "bg-danger bg-opacity-50 rounded-circle"
+                            }}
+                        />
+                    </div>
 
-                    <TransactionList className="col" transactions={[{ amount: 60, date: "2026-03-12" }]}/>
+                    <div className="col">
+                        <TransactionList 
+                            transactions={[]} 
+                            emptyNode={
+                                <span className="text-secondary">
+                                    {selectedDate 
+                                        ? "No transactions for selected date"
+                                        : "Select a date to view transactions made"
+                                    }
+                                </span>
+                            } 
+                        />
+                    </div>
                 </div>
             </div>
         </div>

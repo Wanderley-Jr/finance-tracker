@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Pagination from "./Pagination";
 
 const transactions = [
@@ -48,7 +48,7 @@ export default function LastTransactionsWidget() {
         <div className="card">
             <div className="card-body mx-2">
                 <div className="row g-2">
-                    <h5 className="col card-title">
+                    <h5 className="col card-title me-4">
                         <i className="bi bi-wallet-fill me-2"></i>
                         Last transactions
                     </h5>
@@ -64,8 +64,6 @@ export default function LastTransactionsWidget() {
                         />
                     )}
                 </div>
-
-                <TransactionList transactions={transactions.slice(pageIndex*tableRows, (pageIndex+1)*tableRows)} />
             </div>
         </div>
     );
@@ -78,9 +76,10 @@ interface Transaction {
 
 interface TransactionListProps extends React.HTMLAttributes<HTMLTableElement> {
     transactions: Transaction[]
+    emptyNode: ReactNode
 }
 
-export function TransactionList({ transactions, ...props }: TransactionListProps) {
+export function TransactionList({ transactions, emptyNode, ...props }: TransactionListProps) {
     return (
         <table className="table h-auto" {...props}>
             <colgroup>
@@ -100,6 +99,11 @@ export function TransactionList({ transactions, ...props }: TransactionListProps
             </thead>
 
             <tbody>
+                {transactions.length === 0 &&
+                    <tr className="align-middle">
+                        <td colSpan={4}>{emptyNode}</td>
+                    </tr>
+                }
                 {transactions.map((transaction) => (
                     <tr className="align-middle">
                         <td className={`fw-bold ${transaction.amount >= 0 ? "text-success" : "text-danger"}`}>
