@@ -17,16 +17,16 @@ public class TransactionService {
         this.repository = repository;
     }
 
+    public Transaction create(Transaction transaction) {
+        return repository.save(transaction);
+    }
+
     public List<Transaction> findAll() {
         return repository.findAll();
     }
 
     public Optional<Transaction> findById(Long id) {
         return repository.findById(id);
-    }
-
-    public Transaction create(Transaction transaction) {
-        return repository.save(transaction);
     }
 
     public Transaction update(Long id, Transaction transaction) {
