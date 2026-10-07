@@ -6,7 +6,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -28,7 +27,7 @@ public class TransactionControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    ObjectMapper mapper;
+    private ObjectMapper mapper;
 
     @MockitoBean
     private TransactionService service;
@@ -73,9 +72,6 @@ public class TransactionControllerTest {
 
     @Test
     public void shouldNotCreateTransactionWithInvalidArguments() throws Exception {
-        Transaction transaction = createTransaction();
-        when(service.create(any(Transaction.class))).thenReturn(transaction);
-
         mockMvc.perform(
                 post("/api/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,7 +100,7 @@ public class TransactionControllerTest {
 
     @Test
     public void shouldFindAllTransactions() throws Exception {
-        // Randomize 10 transactions
+        // Create 10 transactions
         double sum = 0;
         List<Transaction> transactions = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -118,6 +114,8 @@ public class TransactionControllerTest {
         mockMvc.perform(get("/api/transactions"))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectAsJson(transactions)));
+
+        verify(service).findAll();
     }
 
     @Test
@@ -125,7 +123,7 @@ public class TransactionControllerTest {
         Transaction transaction = createTransaction();
         when(service.update(eq(1L), any(Transaction.class))).thenReturn(transaction);
 
-        var result = mockMvc.perform(put("/api/transactions/1")
+        mockMvc.perform(put("/api/transactions/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                    {
@@ -134,19 +132,15 @@ public class TransactionControllerTest {
                         "description": "Groceries"
                    }
                 """))
-                .andExpect(status().isOk());
-
-        assertJsonMatchesTransaction(result, transaction);
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectAsJson(transaction)));
 
         verify(service).update(eq(1L), any(Transaction.class));
     }
 
     @Test
     public void shouldNotUpdateTransactionWithInvalidArguments() throws Exception {
-        Transaction transaction = createTransaction();
-        when(service.update(eq(1L), any(Transaction.class))).thenReturn(transaction);
-
-        var result = mockMvc.perform(put("/api/transactions/1")
+        mockMvc.perform(put("/api/transactions/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                    {
@@ -155,9 +149,18 @@ public class TransactionControllerTest {
                         "description": "Groceries"
                    }
                 """))
-                .andExpect(jsonPath())
                 .andExpect(status().isBadRequest());
 
         verify(service, never()).update(eq(1L), any(Transaction.class));
+    }
+
+    @Test
+    public void shouldReturnNotFoundWhenTransactionDoesNotExist() throws Exception {
+        when(service.findById(1L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/transactions/1"))
+                .andExpect(status().isNotFound());
+
+        verify(service).findById(1L);
     }
 }

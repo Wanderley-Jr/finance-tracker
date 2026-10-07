@@ -54,7 +54,7 @@ export default function TransactionCalendarWidget() {
 
     return (
         <>
-            <CreateTransactionModal date={selectedDate} show={showModal} onHide={handleClose} />
+            <CreateTransactionModal date={selectedDate!} show={showModal} onHide={handleClose} />
 
             <div className="card">
                 <div className="card-body mx-2">
