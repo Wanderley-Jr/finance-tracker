@@ -34,7 +34,6 @@ public class TransactionControllerTest {
 
     private Transaction createTransaction() {
         return new Transaction(
-                1L,
                 new BigDecimal("250"),
                 LocalDate.of(2026, 10, 6),
                 "Groceries"
@@ -64,7 +63,7 @@ public class TransactionControllerTest {
                                 "description": "this is a description"
                             }
                         """))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().json(objectAsJson(transaction)));
 
         verify(service).create(any(Transaction.class));

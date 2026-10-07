@@ -1,5 +1,7 @@
 package com.example.spring_demo.transaction;
 
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +12,7 @@ class TransactionNotFoundException extends RuntimeException {
     }
 }
 
+@Service
 public class TransactionService {
     private final TransactionRepository repository;
 

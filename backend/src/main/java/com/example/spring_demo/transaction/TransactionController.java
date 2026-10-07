@@ -1,6 +1,7 @@
 package com.example.spring_demo.transaction;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ public class TransactionController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public Transaction create(@Valid @RequestBody Transaction transaction) {
         return service.create(transaction);
     }

@@ -1,9 +1,11 @@
 package com.example.spring_demo.transaction;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 
 @Entity
@@ -14,6 +16,7 @@ public class Transaction {
     private Long id;
 
     @NotNull
+    @Digits(integer = 13, fraction = 2)
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
@@ -28,9 +31,8 @@ public class Transaction {
     public Transaction() {
     }
 
-    public Transaction(Long id, BigDecimal amount, LocalDate date, String description) {
-        this.id = id;
-        this.amount = amount;
+    public Transaction(BigDecimal amount, LocalDate date, String description) {
+        this.amount = amount.setScale(2, RoundingMode.UNNECESSARY);
         this.date = date;
         this.description = description;
     }
@@ -56,7 +58,7 @@ public class Transaction {
     }
 
     public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+        this.amount = amount.setScale(2, RoundingMode.UNNECESSARY);
     }
 
     public String getDescription() {
