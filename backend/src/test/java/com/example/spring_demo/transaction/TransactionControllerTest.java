@@ -162,4 +162,21 @@ public class TransactionControllerTest {
 
         verify(service).findById(1L);
     }
+
+    @Test
+    public void supportsDateInIsoFormat() throws Exception {
+        Transaction transaction = createTransaction();
+        when(service.create(any(Transaction.class))).thenReturn(transaction);
+
+        mockMvc.perform(post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "amount": 400.00,
+                        "date": "2026-03-21T00:00:00.000Z",
+                        "description": "Groceries"
+                    }
+                """))
+                .andExpect(status().isCreated());
+    }
 }

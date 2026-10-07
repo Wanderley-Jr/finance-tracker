@@ -20,6 +20,8 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -65,6 +67,24 @@ class TransactionIntegrationTest {
 			.usingRecursiveComparison()
 			.ignoringFields("id")
 			.isEqualTo(transaction);
+	}
+
+	@Test
+	public void shouldNotUseIdSpecifiedByUser() throws Exception {
+		mockMvc.perform(
+						post("/api/transactions")
+								.contentType(MediaType.APPLICATION_JSON)
+								.content("""
+                            {
+                                "id": 100000000000,
+                                "amount": 10.00,
+                                "date": "2026-10-06",
+                                "description": "this is a description"
+                            }
+                        """))
+				.andExpect(status().isCreated());
+
+		assertThat(repository.findAll().get(0).getId()).isNotEqualTo(100000000000L);
 	}
 
 	@Test
