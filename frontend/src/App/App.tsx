@@ -4,7 +4,7 @@ import NavBar from "./NavBar";
 import SideBar from "./SideBar";
 
 import Dashboard from "../modules/dashboard/Dashboard";
-import Transactions from "../modules/transactions/Transactions";
+import Transactions from "../modules/transactions/components/Transactions";
 
 export default function App() {
     return (

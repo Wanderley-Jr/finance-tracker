@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import LastTransactionsWidget from "./LastTransactionsWidget";
-import TransactionCalendarWidget from "./TransactionCalendarWidget";
-import { getTransactions, type Transaction } from "./transactionService";
+import LastTransactions from "./LastTransactions";
+import TransactionCalendar from "./TransactionCalendar";
+import { getTransactions, type Transaction } from "../transactionService";
 
 export default function Transactions() {
     const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -18,10 +18,10 @@ export default function Transactions() {
         <div className="container my-4">
             <div className="row">
                 <div className="col">
-                    <TransactionCalendarWidget transactions={transactions} onCreate={fetchTransactions} />
+                    <TransactionCalendar transactions={transactions} onTransactionsChanged={fetchTransactions} />
                 </div>
                 <div className="col-auto">
-                    <LastTransactionsWidget transactions={transactions} onEdit={fetchTransactions} />
+                    <LastTransactions transactions={transactions} onTransactionsChanged={fetchTransactions} />
                 </div>
             </div>
         </div>

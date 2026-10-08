@@ -2,16 +2,16 @@ import { useState } from "react";
 import { DayPicker } from "@daypicker/react";
 
 import "@daypicker/react/style.css";
-import { TransactionList } from "./LastTransactionsWidget";
-import CreateTransactionModal from "./CreateTransactionModal";
-import { type Transaction } from "./transactionService";
+import TransactionList from "./TransactionList";
+import CreateTransactionModal from "./modals/CreateTransactionModal";
+import { type Transaction } from "../transactionService";
 
 interface TransactionCalendarWidgetProps {
     transactions: Transaction[]
-    onCreate: () => void
+    onTransactionsChanged: () => void
 }
 
-export default function TransactionCalendarWidget({ onCreate, transactions }: TransactionCalendarWidgetProps) {
+export default function TransactionCalendarWidget({ onTransactionsChanged, transactions }: TransactionCalendarWidgetProps) {
     const [showModal, setShowModal] = useState(false);
     const [selectedDate, setSelected] = useState<Date>();
 
@@ -20,7 +20,7 @@ export default function TransactionCalendarWidget({ onCreate, transactions }: Tr
 
     return (
         <>
-            <CreateTransactionModal date={selectedDate!} show={showModal} onHide={handleClose} onCreate={onCreate} />
+            <CreateTransactionModal date={selectedDate!} show={showModal} onHide={handleClose} onCreate={onTransactionsChanged} />
 
             <div className="card">
                 <div className="card-body mx-2">
@@ -59,7 +59,7 @@ export default function TransactionCalendarWidget({ onCreate, transactions }: Tr
 
                         <div className="col">
                             <TransactionList
-                                onEdit={onCreate}
+                                onTransactionsChanged={onTransactionsChanged}
                                 transactions={transactions.filter(it => it.date.toLocaleDateString() == selectedDate?.toLocaleDateString())}
                                 emptyNode={
                                     <span className="text-secondary">

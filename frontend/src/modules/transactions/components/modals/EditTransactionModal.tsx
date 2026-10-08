@@ -1,30 +1,29 @@
 import { useState } from "react";
 
 import { Modal, type ModalProps } from "react-bootstrap";
-import { createTransaction, type Transaction } from "./transactionService";
+import { updateTransaction, type Transaction } from "../../transactionService";
 
-interface CreateTransactionModalProps extends ModalProps {
-    date: Date;
-    onCreate: () => void
+interface EditTransactionModalProps extends ModalProps {
+    transaction: Transaction
+    onEdit: () => void
 }
 
-export default function CreateTransactionModal({ date, onCreate, ...props }: CreateTransactionModalProps) {
-    const [amount, setAmount] = useState("");
+export default function EditTransactionModal({ transaction, onEdit, ...props }: EditTransactionModalProps) {
+    const [amount, setAmount] = useState(transaction.amount.toString());
+    const [date, setDate] = useState(transaction.date.toISOString().slice(0, 10));
     const [type, setType] = useState("EXPENSE");
-    const [description, setDescription] = useState("");
+    const [description, setDescription] = useState(transaction.description);
 
     const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const transaction: Transaction = {
+        const newTransaction: Transaction = {
             amount: Number(amount),
             description,
-            date,
+            date: new Date(date),
         };
 
-        console.log("Creating transaction: ", transaction)
-
-        createTransaction(transaction).then(onCreate)
+        updateTransaction(transaction.id!, newTransaction).then(onEdit)
 
         props.onHide?.();
     };
@@ -50,6 +49,20 @@ export default function CreateTransactionModal({ date, onCreate, ...props }: Cre
                                 placeholder="0.00"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="mb-3">
+                            <label htmlFor="date" className="form-label">
+                                Date
+                            </label>
+
+                            <input
+                                type="date"
+                                className="form-control"
+                                id="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
                             />
                         </div>
 
