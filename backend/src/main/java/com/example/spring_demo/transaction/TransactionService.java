@@ -25,7 +25,7 @@ public class TransactionService {
     }
 
     public List<Transaction> findAll() {
-        return repository.findAll();
+        return repository.findAllByOrderByDateDesc();
     }
 
     public Optional<Transaction> findById(Long id) {

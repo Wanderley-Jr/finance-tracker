@@ -3,49 +3,15 @@ import { DayPicker } from "@daypicker/react";
 
 import "@daypicker/react/style.css";
 import { TransactionList } from "./LastTransactionsWidget";
-import { Modal } from "react-bootstrap";
 import CreateTransactionModal from "./CreateTransactionModal";
+import { type Transaction } from "./transactionService";
 
-const transactions = [
-    { amount: 500, date: "2026-10-03" },
-    { amount: -500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-02" },
-    { amount: -500, date: "2026-10-01" },
-    { amount: 500, date: "2026-09-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: -500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-02" },
-    { amount: -500, date: "2026-10-01" },
-    { amount: 500, date: "2026-09-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: -500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-02" },
-    { amount: -500, date: "2026-10-01" },
-    { amount: 500, date: "2026-09-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: -500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-02" },
-    { amount: -500, date: "2026-10-01" },
-    { amount: 500, date: "2026-09-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: -500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-02" },
-    { amount: -500, date: "2026-10-01" },
-    { amount: 500, date: "2026-09-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: -500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-03" },
-    { amount: 500, date: "2026-10-02" },
-    { amount: -500, date: "2026-10-01" },
-    { amount: 500, date: "2026-09-03" },
-];
+interface TransactionCalendarWidgetProps {
+    transactions: Transaction[]
+    onCreate: () => void
+}
 
-export default function TransactionCalendarWidget() {
+export default function TransactionCalendarWidget({ onCreate, transactions }: TransactionCalendarWidgetProps) {
     const [showModal, setShowModal] = useState(false);
     const [selectedDate, setSelected] = useState<Date>();
 
@@ -54,7 +20,7 @@ export default function TransactionCalendarWidget() {
 
     return (
         <>
-            <CreateTransactionModal date={selectedDate!} show={showModal} onHide={handleClose} />
+            <CreateTransactionModal date={selectedDate!} show={showModal} onHide={handleClose} onCreate={onCreate} />
 
             <div className="card">
                 <div className="card-body mx-2">
@@ -80,16 +46,21 @@ export default function TransactionCalendarWidget() {
                                 mode="single"
                                 selected={selectedDate}
                                 onSelect={setSelected}
-                                modifiers={{ hasTransactions: [new Date(2026, 9, 6)] }}
+                                modifiers={{ 
+                                    hasTransactionsGreen: [transactions.filter(it => it.amount > 0).map(it => it.date)],
+                                    hasTransactionsRed: [transactions.filter(it => it.amount < 0).map(it => it.date)] 
+                                }}
                                 modifiersClassNames={{
-                                    hasTransactions: "bg-danger bg-opacity-50 rounded-circle",
+                                    hasTransactionsGreen: "bg-success bg-opacity-50 rounded-circle",
+                                    hasTransactionsRed: "bg-danger bg-opacity-50 rounded-circle",
                                 }}
                             />
                         </div>
 
                         <div className="col">
                             <TransactionList
-                                transactions={[]}
+                                onEdit={onCreate}
+                                transactions={transactions.filter(it => it.date.toLocaleDateString() == selectedDate?.toLocaleDateString())}
                                 emptyNode={
                                     <span className="text-secondary">
                                         {selectedDate

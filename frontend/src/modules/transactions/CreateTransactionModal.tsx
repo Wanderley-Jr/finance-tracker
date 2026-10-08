@@ -1,12 +1,14 @@
 import { useState } from "react";
 
 import { Modal, type ModalProps } from "react-bootstrap";
+import { createTransaction, type Transaction } from "./transactionService";
 
 interface CreateTransactionModalProps extends ModalProps {
     date: Date;
+    onCreate: () => void
 }
 
-export default function CreateTransactionModal({ date, ...props }: CreateTransactionModalProps) {
+export default function CreateTransactionModal({ date, onCreate, ...props }: CreateTransactionModalProps) {
     const [amount, setAmount] = useState("");
     const [type, setType] = useState("EXPENSE");
     const [description, setDescription] = useState("");
@@ -14,14 +16,15 @@ export default function CreateTransactionModal({ date, ...props }: CreateTransac
     const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const transaction = {
+        const transaction: Transaction = {
             amount: Number(amount),
-            type,
             description,
             date,
         };
 
-        console.log(transaction);
+        console.log("Creating transaction: ", transaction)
+
+        createTransaction(transaction).then(onCreate)
 
         props.onHide?.();
     };
