@@ -12,6 +12,7 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
     const [amount, setAmount] = useState(transaction.amount.toString());
     const [date, setDate] = useState(transaction.date.toISOString().slice(0, 10));
     const [type, setType] = useState("EXPENSE");
+    const [title, setTitle] = useState(transaction.title);
     const [description, setDescription] = useState(transaction.description);
 
     const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
@@ -19,6 +20,7 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
 
         const newTransaction: Transaction = {
             amount: Number(amount),
+            title,
             description,
             date: new Date(date),
         };
@@ -32,7 +34,7 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
         <Modal {...props}>
             <form onSubmit={handleSubmit}>
                 <Modal.Header closeButton>
-                    <Modal.Title>Add transaction</Modal.Title>
+                    <Modal.Title>Edit transaction</Modal.Title>
                 </Modal.Header>
 
                 <Modal.Body>
@@ -66,7 +68,7 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
                             />
                         </div>
 
-                        <div className="mb-3">
+                        {/* <div className="mb-3">
                             <label htmlFor="type" className="form-label">
                                 Type
                             </label>
@@ -80,6 +82,21 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
                                 <option value="EXPENSE">Expense</option>
                                 <option value="INCOME">Income</option>
                             </select>
+                        </div> */}
+
+                        <div className="mb-3">
+                            <label htmlFor="title" className="form-label">
+                                Title
+                            </label>
+
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="title"
+                                placeholder="e.g. Groceries"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
                         </div>
 
                         <div className="mb-3">
@@ -87,11 +104,11 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
                                 Description
                             </label>
 
-                            <input
-                                type="text"
+                            <textarea
                                 className="form-control"
                                 id="description"
-                                placeholder="e.g. Groceries"
+                                rows={3}
+                                placeholder="e.g. I went to the grocery store and bought strawberries and lemons"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />
@@ -100,9 +117,9 @@ export default function EditTransactionModal({ transaction, onEdit, ...props }: 
                 </Modal.Body>
 
                 <Modal.Footer>
-                    <button type="submit" className="col-auto btn btn-success">
-                        <i className="bi bi-plus-lg me-2"></i>
-                        Add transaction
+                    <button type="submit" className="col-auto btn btn-primary">
+                        <i className="bi bi-pencil me-2"></i>
+                        Edit transaction
                     </button>
                 </Modal.Footer>
             </form>

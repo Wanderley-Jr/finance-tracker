@@ -14,6 +14,7 @@ interface TransactionCalendarWidgetProps {
 export default function TransactionCalendarWidget({ onTransactionsChanged, transactions }: TransactionCalendarWidgetProps) {
     const [showModal, setShowModal] = useState(false);
     const [selectedDate, setSelected] = useState<Date>();
+    const [peekedTransaction, setPeekedTransaction] = useState<Transaction|null>(null)
 
     const handleOpen = () => setShowModal(true);
     const handleClose = () => setShowModal(false);
@@ -70,23 +71,27 @@ export default function TransactionCalendarWidget({ onTransactionsChanged, trans
                                             : "Select a date to view transactions made"}
                                     </span>
                                 }
+                                onTransactionPeek={(transaction) => setPeekedTransaction(transaction)}
                             />
                         </div>
                     </div>
                 </div>
 
                 <div className="card-footer">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span className="fw-semibold">Compra de supermercado</span>
-                            <small className="text-muted d-block">08/10/2026</small>
-                        </div>
+                    {peekedTransaction != null && (<>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span className="fw-semibold">{ peekedTransaction.title }</span>
+                                <small className="text-muted d-block">{ peekedTransaction.date.toLocaleDateString() }</small>
+                            </div>
 
-                        <span className="fw-semibold text-danger">
-                            - R$ 127,50
-                        </span>
-                    </div>
-                    <div className="">Foram realizadas compras no supermercado</div>
+                            <span className={`fw-bold ${peekedTransaction.amount >= 0 ? "text-success" : "text-danger"}`}>
+                                <i className={`bi fs-6 ${peekedTransaction.amount > 0 ? "bi-plus" : "bi-dash"}`}></i>
+                                R${String(peekedTransaction.amount).replace("-", "")}
+                            </span>
+                        </div>
+                        <div className="">{ peekedTransaction.description }</div>
+                    </>)}
                 </div>
             </div>
         </>

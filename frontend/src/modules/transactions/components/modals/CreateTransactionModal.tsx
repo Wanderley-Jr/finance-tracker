@@ -11,6 +11,7 @@ interface CreateTransactionModalProps extends ModalProps {
 export default function CreateTransactionModal({ date, onCreate, ...props }: CreateTransactionModalProps) {
     const [amount, setAmount] = useState("");
     const [type, setType] = useState("EXPENSE");
+    const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
 
     const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
@@ -18,6 +19,7 @@ export default function CreateTransactionModal({ date, onCreate, ...props }: Cre
 
         const transaction: Transaction = {
             amount: Number(amount),
+            title,
             description,
             date,
         };
@@ -53,7 +55,7 @@ export default function CreateTransactionModal({ date, onCreate, ...props }: Cre
                             />
                         </div>
 
-                        <div className="mb-3">
+                        {/* <div className="mb-3">
                             <label htmlFor="type" className="form-label">
                                 Type
                             </label>
@@ -67,6 +69,21 @@ export default function CreateTransactionModal({ date, onCreate, ...props }: Cre
                                 <option value="EXPENSE">Expense</option>
                                 <option value="INCOME">Income</option>
                             </select>
+                        </div> */}
+
+                        <div className="mb-3">
+                            <label htmlFor="title" className="form-label">
+                                Title
+                            </label>
+
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="title"
+                                placeholder="e.g. Groceries"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
                         </div>
 
                         <div className="mb-3">
@@ -74,11 +91,11 @@ export default function CreateTransactionModal({ date, onCreate, ...props }: Cre
                                 Description
                             </label>
 
-                            <input
-                                type="text"
+                            <textarea
                                 className="form-control"
                                 id="description"
-                                placeholder="e.g. Groceries"
+                                rows={3}
+                                placeholder="e.g. I went to the grocery store and bought strawberries and lemons"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />

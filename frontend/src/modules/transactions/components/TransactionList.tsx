@@ -1,17 +1,44 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Transaction } from "../transactionService";
 import EditTransactionModal from "./modals/EditTransactionModal";
 import DeleteTransactionModal from "./modals/DeleteTransactionModal";
+import React from "react";
 
 interface TransactionListProps extends React.HTMLAttributes<HTMLTableElement> {
     transactions: Transaction[];
     emptyNode: ReactNode;
     onTransactionsChanged: () => void;
+    onTransactionPeek?: (transaction: Transaction|null) => void;
 }
 
-export default function TransactionList({ transactions, emptyNode, onTransactionsChanged, ...props }: TransactionListProps) {
+export default function TransactionList({ transactions, emptyNode, onTransactionsChanged, onTransactionPeek, ...props }: TransactionListProps) {
     const [editingId, setEditingId] = useState<number|null>(null)
     const [deletingId, setDeletingId] = useState<number|null>(null)
+    const [hoveredTransaction, setHoveredTransaction] = useState<Transaction|null>(null)
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction|null>(null)
+
+    const editTransaction = (e: React.MouseEvent<HTMLButtonElement>, transaction: Transaction) => {
+        e.stopPropagation()
+
+        setEditingId(transaction.id!)
+    }
+
+    const deleteTransaction = (e: React.MouseEvent<HTMLButtonElement>, transaction: Transaction) => {
+        e.stopPropagation()
+
+        setDeletingId(transaction.id!)
+    }
+
+    useEffect(() => {
+        if (hoveredTransaction !== null) {
+            onTransactionPeek?.(hoveredTransaction)
+        } else if (selectedTransaction !== null) {
+            onTransactionPeek?.(selectedTransaction)
+        }
+        else {
+            onTransactionPeek?.(null)
+        }
+    }, [hoveredTransaction, selectedTransaction])
 
     return (
         <table className="table h-auto" {...props}>
@@ -25,7 +52,7 @@ export default function TransactionList({ transactions, emptyNode, onTransaction
             <thead>
                 <tr>
                     <th>Amount</th>
-                    <th>Date</th>
+                    <th>Title</th>
                     <th>Edit</th>
                     <th></th>
                 </tr>
@@ -38,21 +65,33 @@ export default function TransactionList({ transactions, emptyNode, onTransaction
                     </tr>
                 )}
                 {transactions.map((transaction) => (
-                    <tr id={transaction.id!.toString()} className="align-middle">
+                    <tr 
+                        id={transaction.id!.toString()} 
+                        className={"align-middle " + (selectedTransaction?.id === transaction.id && "table-primary")} 
+                        onMouseEnter={() => {
+                            setHoveredTransaction(transaction)
+                        }}
+                        onMouseLeave={() =>{
+                            setHoveredTransaction(null)
+                        }}
+                        onClick={() => {
+                            setSelectedTransaction(current => current === null ? transaction : null)
+                        }}
+                    >
                         <td className={`fw-bold ${transaction.amount >= 0 ? "text-success" : "text-danger"}`}>
                             <i className={`bi fs-6 ${transaction.amount > 0 ? "bi-plus" : "bi-dash"}`}></i>
                             R${String(transaction.amount).replace("-", "")}
                         </td>
-                        <td>{transaction.date.toLocaleDateString()}</td>
+                        <td>{transaction.title}</td>
                         <td className="px-1">
-                            <button onClick={() => setEditingId(transaction.id!)} className="btn btn-primary">
+                            <button onClick={(e) => editTransaction(e, transaction)} className="btn btn-primary">
                                 <i className="bi bi-pencil"></i>
                             </button>
 
                             <EditTransactionModal show={editingId === transaction.id} transaction={transaction} onEdit={onTransactionsChanged} onHide={() => setEditingId(null)} />
                         </td>
                         <td className="px-1">
-                            <button className="btn btn-danger" onClick={() => setDeletingId(transaction.id!)}>
+                            <button className="btn btn-danger" onClick={(e) => deleteTransaction(e, transaction)}>
                                 <i className="bi bi-trash"></i>
                             </button>
 
