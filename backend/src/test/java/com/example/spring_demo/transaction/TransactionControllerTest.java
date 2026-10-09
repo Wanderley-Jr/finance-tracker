@@ -36,7 +36,8 @@ public class TransactionControllerTest {
         return new Transaction(
                 new BigDecimal("250"),
                 LocalDate.of(2026, 10, 6),
-                "Groceries"
+                "Groceries",
+                ""
         );
     }
 
@@ -60,7 +61,7 @@ public class TransactionControllerTest {
                             {
                                 "amount": 10.00,
                                 "date": "2026-10-06",
-                                "description": "this is a description"
+                                "title": "this is a description"
                             }
                         """))
                 .andExpect(status().isCreated())
@@ -128,7 +129,7 @@ public class TransactionControllerTest {
                    {
                         "amount": 10.0,
                         "date": "2026-10-09",
-                        "description": "Groceries"
+                        "title": "Groceries"
                    }
                 """))
                 .andExpect(status().isOk())
@@ -145,7 +146,7 @@ public class TransactionControllerTest {
                    {
                         "amount": 10.0,
                         "date": "2026-67-09",
-                        "description": "Groceries"
+                        "title": "Groceries"
                    }
                 """))
                 .andExpect(status().isBadRequest());
@@ -174,7 +175,7 @@ public class TransactionControllerTest {
                     {
                         "amount": 400.00,
                         "date": "2026-03-21T00:00:00.000Z",
-                        "description": "Groceries"
+                        "title": "Groceries"
                     }
                 """))
                 .andExpect(status().isCreated());

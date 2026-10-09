@@ -79,7 +79,7 @@ class TransactionIntegrationTest {
                                 "id": 100000000000,
                                 "amount": 10.00,
                                 "date": "2026-10-06",
-                                "description": "this is a description"
+                                "title": "this is a description"
                             }
                         """))
 				.andExpect(status().isCreated());
@@ -96,6 +96,7 @@ class TransactionIntegrationTest {
 			transactions.add(transaction);
 			transaction.setAmount(BigDecimal.valueOf(sum += 10, 2));
 			transaction.setDate(LocalDate.now());
+			transaction.setTitle("Transaction");
 			transaction.setDescription("Groceries");
 			repository.save(transaction);
 		}
@@ -135,7 +136,7 @@ class TransactionIntegrationTest {
 							{
 								"amount": 10.00,
 								"date": "2026-10-05",
-								"description": "Groceries"
+								"title": "Groceries"
 							}
 						"""))
 				.andExpect(status().isOk())
@@ -152,5 +153,42 @@ class TransactionIntegrationTest {
 				.andExpect(status().isNoContent());
 
 		assertThat(repository.findAll().size()).isEqualTo(0);
+	}
+
+	@Test
+	void updateTransactionShouldPersistAllChanges() throws Exception {
+		// Arrange: save an existing transaction
+		Transaction existing = new Transaction();
+		existing.setAmount(new BigDecimal("25.00"));
+		existing.setDate(LocalDate.of(2026, 10, 1));
+		existing.setTitle("Old title");
+		existing.setDescription("Old description");
+
+		existing = repository.saveAndFlush(existing);
+
+		Long id = existing.getId();
+
+		// Build the updated transaction
+		Transaction updated = new Transaction();
+		updated.setAmount(new BigDecimal("99.50"));
+		updated.setDate(LocalDate.of(2026, 10, 9));
+		updated.setTitle("New title");
+		updated.setDescription("New description");
+
+		mockMvc.perform(put("/api/transactions/{id}", id)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(mapper.writeValueAsString(updated)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.title").value("New title"))
+				.andExpect(jsonPath("$.amount").value(99.50))
+				.andExpect(jsonPath("$.description").value("New description"));
+
+		// Assert: verify the database actually changed
+		Transaction saved = repository.findById(id).orElseThrow();
+
+		assertEquals("New title", saved.getTitle());
+		assertEquals(new BigDecimal("99.50"), saved.getAmount());
+		assertEquals(LocalDate.of(2026, 10, 9), saved.getDate());
+		assertEquals("New description", saved.getDescription());
 	}
 }

@@ -37,6 +37,7 @@ public class TransactionService {
                 .orElseThrow(() -> new TransactionNotFoundException(id));
 
         existing.setAmount(transaction.getAmount());
+        existing.setTitle(transaction.getTitle());
         existing.setDate(transaction.getDate());
         existing.setDescription(transaction.getDescription());
 

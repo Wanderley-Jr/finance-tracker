@@ -3,6 +3,7 @@ package com.example.spring_demo.transaction;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -26,17 +27,26 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDate date;
 
+    @NotBlank
+    @Column(nullable = false)
+    private String title;
+
     @NotNull
     @Column(nullable = false)
-    private String description;
+    private String description = "";
 
     public Transaction() {
     }
 
-    public Transaction(BigDecimal amount, LocalDate date, String description) {
+    public Transaction(BigDecimal amount, LocalDate date, String title, String description) {
         this.amount = amount.setScale(2, RoundingMode.UNNECESSARY);
         this.date = date;
+        this.title = title;
         this.description = description;
+    }
+
+    public Transaction(BigDecimal amount, LocalDate date, String title) {
+        this(amount, date, title, "");
     }
 
     public Long getId() {
@@ -69,5 +79,13 @@ public class Transaction {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 }

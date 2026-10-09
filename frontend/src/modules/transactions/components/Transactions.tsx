@@ -15,12 +15,14 @@ export default function Transactions() {
     }, [])
 
     return (
-        <div className="row">
-            <div className="col">
-                <TransactionCalendar transactions={transactions} onTransactionsChanged={fetchTransactions} />
-            </div>
-            <div className="col-auto">
-                <LastTransactions transactions={transactions} onTransactionsChanged={fetchTransactions} />
+        <div className="container-fluid">
+            <div className="row">
+                <div className="col">
+                    <TransactionCalendar transactions={transactions} onTransactionsChanged={fetchTransactions} />
+                </div>
+                <div className="col-auto">
+                    <LastTransactions transactions={transactions} onTransactionsChanged={fetchTransactions} />
+                </div>
             </div>
         </div>
     );
