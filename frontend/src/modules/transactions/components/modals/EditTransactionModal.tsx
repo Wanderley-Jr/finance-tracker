@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-
 import { Modal, type ModalProps } from "react-bootstrap";
 import { updateTransaction, type Transaction } from "../../transactionService";
+import TransactionForm from "./TransactionForm";
 
 interface EditTransactionModalProps extends ModalProps {
     transaction: Transaction
@@ -9,127 +8,28 @@ interface EditTransactionModalProps extends ModalProps {
 }
 
 export default function EditTransactionModal({ transaction, onEdit, ...props }: EditTransactionModalProps) {
-    const [amount, setAmount] = useState("");
-    const [date, setDate] = useState("");
-    const [type, setType] = useState("EXPENSE");
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-
-    useEffect(() => {
-        setAmount(transaction.amount.toString());
-        setDate(transaction.date.toISOString().slice(0, 10));
-        setTitle(transaction.title);
-        setDescription(transaction.description);
-    }, [transaction])
-
-    const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        const newTransaction: Transaction = {
-            amount: Number(amount),
-            title,
-            description,
-            date: new Date(date),
-        };
-
-        updateTransaction(transaction.id!, newTransaction).then(onEdit)
-
+    const handleSubmit = (transaction: Transaction) => {
+        console.log(transaction)
+        updateTransaction(transaction.id!, transaction).then(onEdit)
         props.onHide?.();
     };
 
     return (
         <Modal {...props}>
-            <form onSubmit={handleSubmit}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Edit transaction</Modal.Title>
-                </Modal.Header>
+            <Modal.Header closeButton>
+                <Modal.Title>Edit transaction</Modal.Title>
+            </Modal.Header>
 
-                <Modal.Body>
-                    <div className="row">
-                        <div className="mb-3">
-                            <label htmlFor="amount" className="form-label">
-                                Amount
-                            </label>
+            <Modal.Body>
+                <TransactionForm id={`edit-transaction-form-${transaction.id!}`} initialData={transaction} onSubmit={handleSubmit} />
+            </Modal.Body>
 
-                            <input
-                                type="number"
-                                className="form-control"
-                                id="amount"
-                                placeholder="0.00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="mb-3">
-                            <label htmlFor="date" className="form-label">
-                                Date
-                            </label>
-
-                            <input
-                                type="date"
-                                className="form-control"
-                                id="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                            />
-                        </div>
-
-                        {/* <div className="mb-3">
-                            <label htmlFor="type" className="form-label">
-                                Type
-                            </label>
-
-                            <select
-                                className="form-select"
-                                id="type"
-                                value={type}
-                                onChange={(e) => setType(e.target.value)}
-                            >
-                                <option value="EXPENSE">Expense</option>
-                                <option value="INCOME">Income</option>
-                            </select>
-                        </div> */}
-
-                        <div className="mb-3">
-                            <label htmlFor="title" className="form-label">
-                                Title
-                            </label>
-
-                            <input
-                                type="text"
-                                className="form-control"
-                                id="title"
-                                placeholder="e.g. Groceries"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="mb-3">
-                            <label htmlFor="description" className="form-label">
-                                Description
-                            </label>
-
-                            <textarea
-                                className="form-control"
-                                id="description"
-                                rows={3}
-                                placeholder="e.g. I went to the grocery store and bought strawberries and lemons"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </Modal.Body>
-
-                <Modal.Footer>
-                    <button type="submit" className="col-auto btn btn-primary">
-                        <i className="bi bi-pencil me-2"></i>
-                        Edit transaction
-                    </button>
-                </Modal.Footer>
-            </form>
+            <Modal.Footer>
+                <button type="submit" form={`edit-transaction-form-${transaction.id!}`} className="col-auto btn btn-primary">
+                    <i className="bi bi-pencil me-2"></i>
+                    Edit transaction
+                </button>
+            </Modal.Footer>
         </Modal>
     );
 }

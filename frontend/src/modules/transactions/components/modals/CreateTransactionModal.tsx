@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Modal, type ModalProps } from "react-bootstrap";
 import { createTransaction, type Transaction } from "../../transactionService";
+import TransactionForm from "./TransactionForm";
 
 interface CreateTransactionModalProps extends ModalProps {
     date: Date;
@@ -9,105 +10,27 @@ interface CreateTransactionModalProps extends ModalProps {
 }
 
 export default function CreateTransactionModal({ date, onCreate, ...props }: CreateTransactionModalProps) {
-    const [amount, setAmount] = useState("");
-    const [type, setType] = useState("EXPENSE");
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-
-    const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        const transaction: Transaction = {
-            amount: Number(amount),
-            title,
-            description,
-            date,
-        };
-
+    const handleSubmit = (transaction: Transaction) => {
         createTransaction(transaction).then(onCreate)
-
         props.onHide?.();
     };
 
     return (
         <Modal {...props}>
-            <form onSubmit={handleSubmit}>
                 <Modal.Header closeButton>
                     <Modal.Title>Add transaction</Modal.Title>
                 </Modal.Header>
 
                 <Modal.Body>
-                    <div className="row">
-                        <div className="mb-3">
-                            <label htmlFor="amount" className="form-label">
-                                Amount
-                            </label>
-
-                            <input
-                                type="number"
-                                className="form-control"
-                                id="amount"
-                                placeholder="0.00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                            />
-                        </div>
-
-                        {/* <div className="mb-3">
-                            <label htmlFor="type" className="form-label">
-                                Type
-                            </label>
-
-                            <select
-                                className="form-select"
-                                id="type"
-                                value={type}
-                                onChange={(e) => setType(e.target.value)}
-                            >
-                                <option value="EXPENSE">Expense</option>
-                                <option value="INCOME">Income</option>
-                            </select>
-                        </div> */}
-
-                        <div className="mb-3">
-                            <label htmlFor="title" className="form-label">
-                                Title
-                            </label>
-
-                            <input
-                                type="text"
-                                className="form-control"
-                                id="title"
-                                placeholder="e.g. Groceries"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="mb-3">
-                            <label htmlFor="description" className="form-label">
-                                Description
-                            </label>
-
-                            <textarea
-                                className="form-control"
-                                id="description"
-                                rows={3}
-                                placeholder="e.g. I went to the grocery store and bought strawberries and lemons"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    <TransactionForm id="create-transaction-form" onSubmit={handleSubmit} overrideDate={date} />
                 </Modal.Body>
 
                 <Modal.Footer>
-                    <button type="submit" className="col-auto btn btn-success">
+                    <button type="submit" form="create-transaction-form" className="col-auto btn btn-success">
                         <i className="bi bi-plus-lg me-2"></i>
                         Add transaction
                     </button>
                 </Modal.Footer>
-            </form>
         </Modal>
     );
 }

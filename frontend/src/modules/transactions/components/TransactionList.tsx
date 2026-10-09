@@ -45,9 +45,9 @@ export default function TransactionList({ transactions, emptyNode, showDate, onT
     return (
         <table className="table h-auto" {...props}>
             <colgroup>
+                <col style={{ width: "1px" }} />
                 <col />
-                <col />
-                {showDate && <col />}
+                {showDate && <col style={{ width: "1px" }} />}
                 <col style={{ width: "1px" }} />
                 <col style={{ width: "1px" }} />
             </colgroup>
