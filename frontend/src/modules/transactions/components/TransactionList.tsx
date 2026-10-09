@@ -3,15 +3,17 @@ import type { Transaction } from "../transactionService";
 import EditTransactionModal from "./modals/EditTransactionModal";
 import DeleteTransactionModal from "./modals/DeleteTransactionModal";
 import React from "react";
+import MoneyAmount from "./MoneyAmount";
 
 interface TransactionListProps extends React.HTMLAttributes<HTMLTableElement> {
     transactions: Transaction[];
     emptyNode: ReactNode;
     onTransactionsChanged: () => void;
     onTransactionPeek?: (transaction: Transaction|null) => void;
+    showDate?: boolean
 }
 
-export default function TransactionList({ transactions, emptyNode, onTransactionsChanged, onTransactionPeek, ...props }: TransactionListProps) {
+export default function TransactionList({ transactions, emptyNode, showDate, onTransactionsChanged, onTransactionPeek, ...props }: TransactionListProps) {
     const [editingId, setEditingId] = useState<number|null>(null)
     const [deletingId, setDeletingId] = useState<number|null>(null)
     const [hoveredTransaction, setHoveredTransaction] = useState<Transaction|null>(null)
@@ -45,6 +47,7 @@ export default function TransactionList({ transactions, emptyNode, onTransaction
             <colgroup>
                 <col />
                 <col />
+                {showDate && <col />}
                 <col style={{ width: "1px" }} />
                 <col style={{ width: "1px" }} />
             </colgroup>
@@ -53,6 +56,7 @@ export default function TransactionList({ transactions, emptyNode, onTransaction
                 <tr>
                     <th>Amount</th>
                     <th>Title</th>
+                    {showDate && <th>Date</th>}
                     <th>Edit</th>
                     <th></th>
                 </tr>
@@ -66,7 +70,7 @@ export default function TransactionList({ transactions, emptyNode, onTransaction
                 )}
                 {transactions.map((transaction) => (
                     <tr 
-                        id={transaction.id!.toString()} 
+                        key={transaction.id!.toString()} 
                         className={"align-middle " + (selectedTransaction?.id === transaction.id && "table-primary")} 
                         onMouseEnter={() => {
                             setHoveredTransaction(transaction)
@@ -78,16 +82,16 @@ export default function TransactionList({ transactions, emptyNode, onTransaction
                             setSelectedTransaction(current => current === null ? transaction : null)
                         }}
                     >
-                        <td className={`fw-bold ${transaction.amount >= 0 ? "text-success" : "text-danger"}`}>
-                            <i className={`bi fs-6 ${transaction.amount > 0 ? "bi-plus" : "bi-dash"}`}></i>
-                            R${String(transaction.amount).replace("-", "")}
+                        <td>
+                            <MoneyAmount amount={transaction.amount} />
                         </td>
                         <td>{transaction.title}</td>
+                        {showDate && <td>{transaction.date.toLocaleDateString()}</td>}
                         <td className="px-1">
                             <button onClick={(e) => editTransaction(e, transaction)} className="btn btn-primary">
                                 <i className="bi bi-pencil"></i>
                             </button>
-
+                            
                             <EditTransactionModal show={editingId === transaction.id} transaction={transaction} onEdit={onTransactionsChanged} onHide={() => setEditingId(null)} />
                         </td>
                         <td className="px-1">

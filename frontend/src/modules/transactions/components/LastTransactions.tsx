@@ -38,6 +38,7 @@ export default function LastTransactions({ transactions, onTransactionsChanged }
                     transactions={transactions.slice(tableRows * pageIndex, tableRows * (pageIndex+1))}
                     emptyNode={<span className="text-secondary">No transactions found yet.</span>}
                     onTransactionsChanged={onTransactionsChanged}
+                    showDate
                 />
             </div>
         </div>

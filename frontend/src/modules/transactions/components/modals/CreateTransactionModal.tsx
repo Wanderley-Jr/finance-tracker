@@ -24,8 +24,6 @@ export default function CreateTransactionModal({ date, onCreate, ...props }: Cre
             date,
         };
 
-        console.log("Creating transaction: ", transaction)
-
         createTransaction(transaction).then(onCreate)
 
         props.onHide?.();

@@ -39,9 +39,9 @@ export async function getTransaction(id: number) {
 }
 
 export async function updateTransaction(id: number, transaction: Transaction) {
-    await api.put(`/transactions/${id}`, toDto(transaction))
+    return await api.put(`/transactions/${id}`, toDto(transaction))
 }
 
 export async function deleteTransaction(id: number) {
-    await api.delete(`/transactions/${id}`)
+    return await api.delete(`/transactions/${id}`)
 }

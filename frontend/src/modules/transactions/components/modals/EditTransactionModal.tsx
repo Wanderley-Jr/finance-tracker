@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Modal, type ModalProps } from "react-bootstrap";
 import { updateTransaction, type Transaction } from "../../transactionService";
@@ -9,11 +9,18 @@ interface EditTransactionModalProps extends ModalProps {
 }
 
 export default function EditTransactionModal({ transaction, onEdit, ...props }: EditTransactionModalProps) {
-    const [amount, setAmount] = useState(transaction.amount.toString());
-    const [date, setDate] = useState(transaction.date.toISOString().slice(0, 10));
+    const [amount, setAmount] = useState("");
+    const [date, setDate] = useState("");
     const [type, setType] = useState("EXPENSE");
-    const [title, setTitle] = useState(transaction.title);
-    const [description, setDescription] = useState(transaction.description);
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+
+    useEffect(() => {
+        setAmount(transaction.amount.toString());
+        setDate(transaction.date.toISOString().slice(0, 10));
+        setTitle(transaction.title);
+        setDescription(transaction.description);
+    }, [transaction])
 
     const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
         e.preventDefault();

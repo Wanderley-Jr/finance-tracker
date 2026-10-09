@@ -10,16 +10,17 @@ export default function App() {
     return (
         <>
             <NavBar />
+            <div className="container-fluid">
+                <div className="row">
+                    <SideBar />
 
-            <div className="d-flex">
-                <SideBar />
-
-                <main className="container">
-                    <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/transactions" element={<Transactions />} />
-                    </Routes>
-                </main>
+                    <main className="col my-2">
+                        <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/transactions" element={<Transactions />} />
+                        </Routes>
+                    </main>
+                </div>
             </div>
         </>
     );

@@ -5,6 +5,7 @@ import "@daypicker/react/style.css";
 import TransactionList from "./TransactionList";
 import CreateTransactionModal from "./modals/CreateTransactionModal";
 import { type Transaction } from "../transactionService";
+import MoneyAmount from "./MoneyAmount";
 
 interface TransactionCalendarWidgetProps {
     transactions: Transaction[]
@@ -14,7 +15,12 @@ interface TransactionCalendarWidgetProps {
 export default function TransactionCalendarWidget({ onTransactionsChanged, transactions }: TransactionCalendarWidgetProps) {
     const [showModal, setShowModal] = useState(false);
     const [selectedDate, setSelected] = useState<Date>();
-    const [peekedTransaction, setPeekedTransaction] = useState<Transaction|null>(null)
+    const [selectedMonth, setSelectedMonth] = useState<number>(new Date(Date.now()).getMonth());
+    const [peekedTransaction, setPeekedTransaction] = useState<Transaction | null>(null)
+
+    const monthlyTransactions = transactions.filter(it => it.date.getMonth() === selectedMonth).map(it => it.amount)
+    const income = monthlyTransactions.filter(it => it > 0).reduce((prev, cur) => prev+cur, 0)
+    const expenses = monthlyTransactions.filter(it => it < 0).reduce((prev, cur) => prev+cur, 0)
 
     const handleOpen = () => setShowModal(true);
     const handleClose = () => setShowModal(false);
@@ -49,6 +55,7 @@ export default function TransactionCalendarWidget({ onTransactionsChanged, trans
                                 mode="single"
                                 selected={selectedDate}
                                 onSelect={setSelected}
+                                onMonthChange={(props) => setSelectedMonth(props.getMonth())}
                                 modifiers={{
                                     hasTransactionsGreen: [transactions.filter(it => it.amount > 0).map(it => it.date)],
                                     hasTransactionsRed: [transactions.filter(it => it.amount < 0).map(it => it.date)]
@@ -78,19 +85,35 @@ export default function TransactionCalendarWidget({ onTransactionsChanged, trans
                 </div>
 
                 <div className="card-footer">
+                    {peekedTransaction === null && (
+                        <div className="row text-center g-3">
+                            <div className="col-4">
+                                <small className="text-body-secondary d-block">Income</small>
+                                <MoneyAmount amount={income} hideSign />
+                            </div>
+
+                            <div className="col-4 border-start border-end">
+                                <small className="text-body-secondary d-block">Expenses</small>
+                                <MoneyAmount amount={expenses} hideSign />
+                                
+                            </div>
+
+                            <div className="col-4">
+                                <small className="text-body-secondary d-block">Balance</small>
+                                <MoneyAmount amount={income+expenses} />
+                            </div>
+                        </div>
+                    )}
                     {peekedTransaction != null && (<>
                         <div className="d-flex justify-content-between align-items-center">
                             <div>
-                                <span className="fw-semibold">{ peekedTransaction.title }</span>
-                                <small className="text-muted d-block">{ peekedTransaction.date.toLocaleDateString() }</small>
+                                <span className="fw-semibold">{peekedTransaction.title}</span>
+                                <small className="text-muted d-block">{peekedTransaction.date.toLocaleDateString()}</small>
                             </div>
 
-                            <span className={`fw-bold ${peekedTransaction.amount >= 0 ? "text-success" : "text-danger"}`}>
-                                <i className={`bi fs-6 ${peekedTransaction.amount > 0 ? "bi-plus" : "bi-dash"}`}></i>
-                                R${String(peekedTransaction.amount).replace("-", "")}
-                            </span>
+                            <MoneyAmount amount={peekedTransaction.amount} />
                         </div>
-                        <div className="">{ peekedTransaction.description }</div>
+                        <div style={{ whiteSpace: "pre-line" }}>{peekedTransaction.description}</div>
                     </>)}
                 </div>
             </div>
