@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import LastTransactions from "./LastTransactions";
+import TransactionHistory from "./TransactionHistory";
 import TransactionCalendar from "./TransactionCalendar";
 import { getTransactions, type Transaction } from "../transactionService";
 
@@ -21,7 +21,7 @@ export default function Transactions() {
                     <TransactionCalendar transactions={transactions} onTransactionsChanged={fetchTransactions} />
                 </div>
                 <div className="col-auto">
-                    <LastTransactions transactions={transactions} onTransactionsChanged={fetchTransactions} />
+                    <TransactionHistory transactions={transactions} onTransactionsChanged={fetchTransactions} />
                 </div>
             </div>
         </div>
