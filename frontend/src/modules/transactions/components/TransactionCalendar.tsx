@@ -32,7 +32,7 @@ export default function TransactionCalendarWidget({ onTransactionsChanged, trans
             <div className="card">
                 <div className="card-header">
                     <div className="row g-2 align-items-baseline">
-                        <h5 className="col card-title">
+                        <h5 className="col card-title mt-2">
                             <i className="bi bi-calendar-fill me-2"></i>
                             Calendar
                         </h5>
@@ -71,6 +71,7 @@ export default function TransactionCalendarWidget({ onTransactionsChanged, trans
                             <TransactionList
                                 onTransactionsChanged={onTransactionsChanged}
                                 transactions={transactions.filter(it => it.date.toLocaleDateString() == selectedDate?.toLocaleDateString())}
+                                rowCount={5}
                                 emptyNode={
                                     <span className="text-secondary">
                                         {selectedDate
