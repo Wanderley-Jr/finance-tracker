@@ -1,5 +1,8 @@
 package com.example.spring_demo.transaction;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,8 +27,8 @@ public class TransactionService {
         return repository.save(transaction);
     }
 
-    public List<Transaction> findAll() {
-        return repository.findAllByOrderByDateDesc();
+    public Page<Transaction> getTransactions(Specification<Transaction> specification, Pageable pageable) {
+        return repository.findAll(specification, pageable);
     }
 
     public Optional<Transaction> findById(Long id) {

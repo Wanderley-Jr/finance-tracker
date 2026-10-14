@@ -1,10 +1,15 @@
 package com.example.spring_demo.transaction;
 
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,8 +28,15 @@ public class TransactionController {
     }
 
     @GetMapping
-    public List<Transaction> findAll() {
-        return service.findAll();
+    public Page<Transaction> getTransactions(
+            Pageable pageable,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String description
+    ) {
+        Specification<Transaction> specification = TransactionSpecs.withFilters(startDate, endDate, title, description);
+        return service.getTransactions(specification, pageable);
     }
 
     @GetMapping("/{id}")

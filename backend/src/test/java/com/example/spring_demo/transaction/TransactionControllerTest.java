@@ -1,8 +1,11 @@
 package com.example.spring_demo.transaction;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -15,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -99,23 +104,71 @@ public class TransactionControllerTest {
     }
 
     @Test
-    public void shouldFindAllTransactions() throws Exception {
-        // Create 10 transactions
-        double sum = 0;
-        List<Transaction> transactions = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            Transaction transaction = createTransaction();
-            transaction.setAmount(BigDecimal.valueOf(sum += 10));
-            transactions.add(transaction);
-        }
+    void shouldReturnPageOfTransactions() throws Exception {
+        List<Transaction> transactions = List.of(
+                createTransaction(),
+                createTransaction()
+        );
 
-        when(service.findAll()).thenReturn(transactions);
+        Page<Transaction> page = new PageImpl<>(
+                transactions,
+                PageRequest.of(0, 20),
+                transactions.size()
+        );
+
+        when(service.getTransactions(any(Specification.class), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/transactions"))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectAsJson(transactions)));
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.size").value(20));
 
-        verify(service).findAll();
+        verify(service).getTransactions(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void shouldPassPaginationAndSortingToService() throws Exception {
+        when(service.getTransactions(any(Specification.class), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("page", "1")
+                        .param("size", "5")
+                        .param("sort", "amount,asc"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
+
+        verify(service).getTransactions(
+                any(Specification.class),
+                pageableCaptor.capture()
+        );
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertEquals(1, pageable.getPageNumber());
+        assertEquals(5, pageable.getPageSize());
+        assertEquals(Sort.Direction.ASC, pageable.getSort().getOrderFor("amount").getDirection());
+    }
+
+    @Test
+    void shouldAcceptFilterParameters() throws Exception {
+        when(service.getTransactions(any(Specification.class), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("startDate", "2026-01-01")
+                        .param("endDate", "2026-01-31")
+                        .param("titleQuery", "rent")
+                        .param("descriptionQuery", "apartment"))
+                .andExpect(status().isOk());
+
+        verify(service).getTransactions(any(Specification.class), any(Pageable.class));
     }
 
     @Test

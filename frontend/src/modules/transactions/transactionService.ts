@@ -1,4 +1,4 @@
-import api from "../../app/api"
+import api, { type Pagination, type Page } from "../../app/api"
 
 export type Transaction = {
     id?: number
@@ -9,6 +9,13 @@ export type Transaction = {
 }
 
 type TransactionDto = Omit<Transaction, "date"> & { date: string }
+
+type TransactionFilter = {
+    startDate?: string
+    endDate?: string
+    title?: string
+    description?: string
+}
 
 function toDto(transaction: Transaction): TransactionDto {
     return {
@@ -28,12 +35,12 @@ export async function createTransaction(transaction: Transaction) {
     await api.post("/transactions", toDto(transaction))
 }
 
-export async function getTransactions() {
-    const response = await api.get<TransactionDto[]>("/transactions")
-    return response.data.map(fromDto)
+export async function getTransactions(params: Pagination<Transaction> & TransactionFilter = {}) {
+    const response = await api.get<Page<TransactionDto>>("/transactions", { params })
+    return response.data.content.map(fromDto)
 }
 
-export async function getTransaction(id: number) {
+export async function getTransactionById(id: number) {
     const response = await api.get<TransactionDto>(`/transactions/${id}`)
     return fromDto(response.data)
 }
