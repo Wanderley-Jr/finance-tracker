@@ -3,7 +3,7 @@ import { deleteTransaction, type Transaction } from "../../transactionService";
 
 interface DeleteTransactionModalProps extends ModalProps {
     transaction: Transaction
-    onDelete: () => void
+    onDelete?: () => void
 }
 
 export default function DeleteTransactionModal({ transaction, onDelete, ...props }: DeleteTransactionModalProps) {

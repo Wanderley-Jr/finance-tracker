@@ -43,7 +43,9 @@ function getSorterFor(sort: TransactionSorts): (a: Transaction, b: Transaction) 
     }
 };
 
-export default function TransactionHistory({ onTransactionsChanged, transactions }: TransactionHistoryProps) {
+type LocalDate = string
+
+export default function TransactionHistory({ transactions }: TransactionHistoryProps) {
     const [search, setSearch] = useState("")
     const [startDate, setStartDate] = useState<Date | null>(null)
     const [endDate, setEndDate] = useState<Date | null>(null)
@@ -162,7 +164,7 @@ export default function TransactionHistory({ onTransactionsChanged, transactions
                 <TransactionList
                     transactions={filteredTransactions}
                     emptyNode={<span className="text-secondary">No transactions found yet.</span>}
-                    onTransactionsChanged={onTransactionsChanged}
+                    queryParams={{ title: search, startDate: new Date(), endDate: endDate }}
                     showDate        
                 />
             </div>

@@ -10,7 +10,7 @@ export type Transaction = {
 
 type TransactionDto = Omit<Transaction, "date"> & { date: string }
 
-type TransactionFilter = {
+export type TransactionQueryParams = Pagination<Transaction> & {
     startDate?: string
     endDate?: string
     title?: string
@@ -35,9 +35,13 @@ export async function createTransaction(transaction: Transaction) {
     await api.post("/transactions", toDto(transaction))
 }
 
-export async function getTransactions(params: Pagination<Transaction> & TransactionFilter = {}) {
+export async function getTransactions(params: TransactionQueryParams = {}) {
     const response = await api.get<Page<TransactionDto>>("/transactions", { params })
-    return response.data.content.map(fromDto)
+    const page = response.data
+    return {
+        ...page,
+        content: page.content.map(fromDto)
+    } as Page<Transaction>
 }
 
 export async function getTransactionById(id: number) {

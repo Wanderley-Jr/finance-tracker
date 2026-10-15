@@ -4,7 +4,7 @@ import TransactionForm from "./TransactionForm";
 
 interface EditTransactionModalProps extends ModalProps {
     transaction: Transaction
-    onEdit: () => void
+    onEdit?: () => void
 }
 
 export default function EditTransactionModal({ transaction, onEdit, ...props }: EditTransactionModalProps) {
