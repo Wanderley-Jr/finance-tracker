@@ -1,5 +1,6 @@
 import { Modal, type ModalProps } from "react-bootstrap";
-import { deleteTransaction, type Transaction } from "../../transactionService";
+import { type Transaction } from "../../transactionService";
+import { useDeleteTransaction } from "../../transactionHooks";
 
 interface DeleteTransactionModalProps extends ModalProps {
     transaction: Transaction
@@ -7,8 +8,10 @@ interface DeleteTransactionModalProps extends ModalProps {
 }
 
 export default function DeleteTransactionModal({ transaction, onDelete, ...props }: DeleteTransactionModalProps) {
+    const deleteTransaction = useDeleteTransaction()
+
     const onClick = () => {
-        deleteTransaction(transaction.id!).then(onDelete)
+        deleteTransaction.mutate(transaction)
         props.onHide?.();
     }
 

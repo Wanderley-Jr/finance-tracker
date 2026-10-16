@@ -1,23 +1,24 @@
 import { useEffect, useState, type ComponentProps } from "react"
 import type { Transaction } from "../../transactionService"
+import { parseLocalDate, type LocalDate } from "../../../../app/localDate"
 
 interface TransactionFormProps extends Omit<ComponentProps<"form">, "onSubmit"> {
     initialData?: Transaction
     onSubmit: (transaction: Transaction) => void
-    overrideDate?: Date
+    overrideDate?: LocalDate
 }
 
 export default function TransactionForm({ initialData, onSubmit, overrideDate, ...props }: TransactionFormProps) {
     const [amount, setAmount] = useState("");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [date, setDate] = useState("");
+    const [date, setDate] = useState<LocalDate | null>(null);
 
     useEffect(() => {
         setAmount(initialData?.amount.toFixed(2) ?? "")
         setTitle(initialData?.title ?? "")
         setDescription(initialData?.description ?? "")
-        setDate(initialData?.date?.toISOString()?.slice(0, 10) ?? "")
+        setDate(initialData?.date ?? null)
     }, [initialData])
 
     return (
@@ -29,7 +30,7 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
                 amount: Number(amount),
                 title,
                 description,
-                date: overrideDate ?? new Date(date),
+                date: overrideDate ?? date!,
             };
 
             onSubmit(transaction)
@@ -48,7 +49,6 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         required
-                        min={0}
                         step={0.01}
                     />
                 </div>
@@ -63,8 +63,8 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
                             type="date"
                             className="form-control"
                             id="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
+                            value={date ?? undefined}
+                            onChange={(e) => setDate(parseLocalDate(e.target.value))}
                         />
                     </div>
                 )}

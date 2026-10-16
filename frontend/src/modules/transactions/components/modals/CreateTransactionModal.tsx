@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
-
 import { Modal, type ModalProps } from "react-bootstrap";
-import { createTransaction, type Transaction } from "../../transactionService";
+import { type Transaction } from "../../transactionService";
 import TransactionForm from "./TransactionForm";
+import type { LocalDate } from "../../../../app/localDate";
+import { useCreateTransaction } from "../../transactionHooks";
 
 interface CreateTransactionModalProps extends ModalProps {
-    date: Date;
-    onCreate: () => void
+    date: LocalDate
 }
 
 export default function CreateTransactionModal({ date, onCreate, ...props }: CreateTransactionModalProps) {
+    const createTransaction = useCreateTransaction()
+
     const handleSubmit = (transaction: Transaction) => {
-        createTransaction(transaction).then(onCreate)
+        createTransaction.mutate(transaction)
         props.onHide?.();
     };
 

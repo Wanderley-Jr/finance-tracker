@@ -7,9 +7,9 @@ import MoneyAmount from "./MoneyAmount";
 import Pagination from "../../../components/Pagination";
 import { useTransactions } from "../transactionHooks";
 import type { Page } from "../../../app/api";
+import { toDate } from "../../../app/localDate";
 
 interface TransactionListProps extends React.HTMLAttributes<HTMLDivElement> {
-    transactions: Transaction[];
     queryParams: TransactionQueryParams;
     emptyNode: ReactNode;
     onTransactionPreview?: (transaction: Transaction | null) => void;
@@ -49,7 +49,7 @@ export default function TransactionList({
                 </thead>
 
                 {data !== undefined && data.totalElements > 0
-                    ? <TransactionListBody page={data} showDate onTransactionPreview={onTransactionPreview} />
+                    ? <TransactionListBody page={data} showDate={showDate} onTransactionPreview={onTransactionPreview} />
                     : <tbody>
                         <tr className="align-middle">
                             <td colSpan={showDate ? 5 : 4}>
@@ -133,7 +133,7 @@ function TransactionListBody({ page, showDate, onTransactionPreview }: Transacti
                 <td>{transaction.title}</td>
 
                 {showDate && (
-                    <td>{transaction.date.toLocaleDateString()}</td>
+                    <td>{toDate(transaction.date).toLocaleDateString()}</td>
                 )}
 
                 <td className="px-1">

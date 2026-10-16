@@ -1,16 +1,17 @@
 import { Modal, type ModalProps } from "react-bootstrap";
-import { updateTransaction, type Transaction } from "../../transactionService";
+import { type Transaction } from "../../transactionService";
 import TransactionForm from "./TransactionForm";
+import { useUpdateTransaction } from "../../transactionHooks";
 
 interface EditTransactionModalProps extends ModalProps {
     transaction: Transaction
-    onEdit?: () => void
 }
 
-export default function EditTransactionModal({ transaction, onEdit, ...props }: EditTransactionModalProps) {
+export default function EditTransactionModal({ transaction, ...props }: EditTransactionModalProps) {
+    const updateTransaction = useUpdateTransaction()
+
     const handleSubmit = (transaction: Transaction) => {
-        console.log(transaction)
-        updateTransaction(transaction.id!, transaction).then(onEdit)
+        updateTransaction.mutate(transaction)
         props.onHide?.();
     };
 

@@ -1,56 +1,37 @@
 import api, { type Pagination, type Page } from "../../app/api"
+import type { LocalDate } from "../../app/localDate"
 
 export type Transaction = {
     id?: number
     amount: number
-    date: Date
+    date: LocalDate
     title: string
     description: string
 }
 
-type TransactionDto = Omit<Transaction, "date"> & { date: string }
-
 export type TransactionQueryParams = Pagination<Transaction> & {
-    startDate?: string
-    endDate?: string
+    startDate?: LocalDate
+    endDate?: LocalDate
     title?: string
     description?: string
 }
 
-function toDto(transaction: Transaction): TransactionDto {
-    return {
-        ...transaction,
-        date: transaction.date.toISOString()
-    }
-}
-
-function fromDto(dto: TransactionDto): Transaction {
-    return {
-        ...dto,
-        date: new Date(dto.date + "T00:00:00")
-    }
-}
-
 export async function createTransaction(transaction: Transaction) {
-    await api.post("/transactions", toDto(transaction))
+    await api.post("/transactions", transaction)
 }
 
 export async function getTransactions(params: TransactionQueryParams = {}) {
-    const response = await api.get<Page<TransactionDto>>("/transactions", { params })
-    const page = response.data
-    return {
-        ...page,
-        content: page.content.map(fromDto)
-    } as Page<Transaction>
+    const response = await api.get<Page<Transaction>>("/transactions", { params })
+    return response.data
 }
 
 export async function getTransactionById(id: number) {
-    const response = await api.get<TransactionDto>(`/transactions/${id}`)
-    return fromDto(response.data)
+    const response = await api.get<Transaction>(`/transactions/${id}`)
+    return response.data
 }
 
 export async function updateTransaction(id: number, transaction: Transaction) {
-    return await api.put(`/transactions/${id}`, toDto(transaction))
+    return await api.put(`/transactions/${id}`, transaction)
 }
 
 export async function deleteTransaction(id: number) {

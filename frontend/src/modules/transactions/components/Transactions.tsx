@@ -1,27 +1,18 @@
-import { useEffect, useState } from "react";
 import TransactionHistory from "./TransactionHistory";
 import TransactionCalendar from "./TransactionCalendar";
-import { getTransactions, type Transaction } from "../transactionService";
+import { useTransactions } from "../transactionHooks";
 
 export default function Transactions() {
-    const [transactions, setTransactions] = useState<Transaction[]>([])
-
-    const fetchTransactions = () => {
-        getTransactions().then(result => setTransactions(result))
-    }
-
-    useEffect(() => {
-        fetchTransactions()
-    }, [])
+    const { data } = useTransactions({})
 
     return (
         <div className="container-fluid">
             <div className="row">
                 <div className="col">
-                    <TransactionCalendar transactions={transactions} onTransactionsChanged={fetchTransactions} />
+                    <TransactionCalendar transactions={data?.content ?? []} />
                 </div>
                 <div className="col-auto">
-                    <TransactionHistory transactions={transactions} onTransactionsChanged={fetchTransactions} />
+                    <TransactionHistory transactions={data?.content ?? []} />
                 </div>
             </div>
         </div>
