@@ -6,7 +6,7 @@ export default function Transactions() {
     const { data } = useTransactions({})
 
     return (
-        <div className="container-fluid">
+        <div className="container-fluid my-4">
             <div className="row">
                 <div className="col">
                     <TransactionCalendar transactions={data?.content ?? []} />

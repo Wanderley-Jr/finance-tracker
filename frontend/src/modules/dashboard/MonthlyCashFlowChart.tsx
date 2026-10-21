@@ -97,11 +97,7 @@ export default function MonthlyCashFlowChart() {
 
     const invalidRange = startDate > endDate;
 
-    const {
-        data,
-        isPending,
-        isError,
-    } = useTransactions({
+    const { data, isPending, isError } = useTransactions({
         startDate,
         endDate,
         page: 0,
@@ -129,13 +125,18 @@ export default function MonthlyCashFlowChart() {
 
     return (
         <div className="card">
-            <div className="card-header">
-                <h5 className="card-title mb-3">
-                    Monthly Cash Flow
-                </h5>
+            <div className="card-header py-3">
+                <div className="row">
+                    <div className="col">
+                        <h5 className="card-title mb-3">
+                            Cash Flow
+                        </h5>
+                        <p className="text-body-secondary small mb-0">
+                            Income vs. expenses across months
+                        </p>
+                    </div>
 
-                <div className="row g-3">
-                    <div className="col-sm-6">
+                    <div className="col">
                         <label
                             htmlFor="cash-flow-start-date"
                             className="form-label"
@@ -155,7 +156,7 @@ export default function MonthlyCashFlowChart() {
                         />
                     </div>
 
-                    <div className="col-sm-6">
+                    <div className="col">
                         <label
                             htmlFor="cash-flow-end-date"
                             className="form-label"
