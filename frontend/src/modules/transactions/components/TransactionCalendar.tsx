@@ -5,7 +5,7 @@ import "@daypicker/react/style.css";
 import TransactionList from "./TransactionList";
 import CreateTransactionModal from "./modals/CreateTransactionModal";
 import { type Transaction } from "../transactionService";
-import MoneyAmount from "./MoneyAmount";
+import MoneyAmount from "../../../components/MoneyAmount";
 import { parseLocalDate, toDate, type LocalDate } from "../../../app/localDate";
 
 interface TransactionCalendarWidgetProps {

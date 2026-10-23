@@ -3,7 +3,7 @@ import type { Transaction, TransactionQueryParams } from "../transactionService"
 import EditTransactionModal from "./modals/EditTransactionModal";
 import DeleteTransactionModal from "./modals/DeleteTransactionModal";
 import React from "react";
-import MoneyAmount from "./MoneyAmount";
+import MoneyAmount from "../../../components/MoneyAmount";
 import Pagination from "../../../components/Pagination";
 import { useTransactions } from "../transactionHooks";
 import type { Page } from "../../../app/api";

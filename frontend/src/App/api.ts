@@ -20,12 +20,19 @@ export type Pagination<T> = {
 
 const api = axios.create({
     baseURL: "http://localhost:8080/api",
+    withCredentials: true,
+    withXSRFToken: true,
+    xsrfCookieName: "XSRF-TOKEN",
+    xsrfHeaderName: "X-XSRF-TOKEN",
     headers: {
         "Content-Type": "application/json",
     },
     paramsSerializer: {
-        serialize: (params) => qs.stringify(params, { arrayFormat: "repeat" })
-    }
+        serialize: (params) =>
+            qs.stringify(params, { arrayFormat: "repeat" }),
+    },
 });
+
+
 
 export default api;

@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -116,7 +117,7 @@ class TransactionControllerTest {
 
     @Test
     void shouldFindTransactionById() throws Exception {
-        Transaction transaction = createTransaction();
+        TransactionResponse transaction = TransactionResponse.from(createTransaction());
 
         when(service.findById(1L))
                 .thenReturn(Optional.of(transaction));
@@ -143,12 +144,12 @@ class TransactionControllerTest {
 
     @Test
     void shouldReturnPageOfTransactions() throws Exception {
-        List<Transaction> transactions = List.of(
+        List<TransactionResponse> transactions = Stream.of(
                 createTransaction(),
                 createTransaction()
-        );
+        ).map(TransactionResponse::from).toList();
 
-        Page<Transaction> page = new PageImpl<>(
+        Page<TransactionResponse> page = new PageImpl<>(
                 transactions,
                 PageRequest.of(0, 20),
                 transactions.size()

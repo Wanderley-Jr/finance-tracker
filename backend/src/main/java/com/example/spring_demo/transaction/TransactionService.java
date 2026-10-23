@@ -4,7 +4,6 @@ import com.example.spring_demo.transaction.dto.TransactionRequest;
 import com.example.spring_demo.transaction.dto.TransactionResponse;
 import com.example.spring_demo.user.CurrentUserService;
 import com.example.spring_demo.user.User;
-import com.example.spring_demo.user.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -25,8 +24,7 @@ public class TransactionService {
     private final TransactionRepository repository;;
     private final CurrentUserService currentUserService;
 
-    public TransactionService(TransactionRepository repository,
-                              UserRepository userRepository, CurrentUserService currentUserService) {
+    public TransactionService(TransactionRepository repository, CurrentUserService currentUserService) {
         this.repository = repository;
         this.currentUserService = currentUserService;
     }
@@ -46,7 +44,7 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Transaction> getTransactions(Specification<Transaction> specification, Pageable pageable) {
+    public Page<TransactionResponse> getTransactions(Specification<Transaction> specification, Pageable pageable) {
         User user = currentUserService.getCurrentUser();
 
         Specification<Transaction> userSpecification = (root, query, criteriaBuilder) ->
@@ -59,13 +57,13 @@ public class TransactionService {
                 ? userSpecification
                 : specification.and(userSpecification);
 
-        return repository.findAll(combinedSpecification, pageable);
+        return repository.findAll(combinedSpecification, pageable).map(TransactionResponse::from);
     }
 
     @Transactional(readOnly = true)
-    public Optional<Transaction> findById(Long id) {
+    public Optional<TransactionResponse> findById(Long id) {
         User user = currentUserService.getCurrentUser();
-        return repository.findByIdAndUserId(id, user.getId());
+        return repository.findByIdAndUserId(id, user.getId()).map(TransactionResponse::from);
     }
 
     @Transactional

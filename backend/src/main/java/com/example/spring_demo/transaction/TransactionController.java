@@ -2,18 +2,12 @@ package com.example.spring_demo.transaction;
 
 import com.example.spring_demo.transaction.dto.TransactionRequest;
 import com.example.spring_demo.transaction.dto.TransactionResponse;
-import com.example.spring_demo.user.CurrentUserService;
-import com.example.spring_demo.user.User;
-import com.example.spring_demo.user.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -36,7 +30,7 @@ public class TransactionController {
     }
 
     @GetMapping
-    public Page<Transaction> getTransactions(
+    public Page<TransactionResponse> getTransactions(
             Pageable pageable,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
@@ -48,7 +42,7 @@ public class TransactionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Transaction> findById(@PathVariable Long id) {
+    public ResponseEntity<TransactionResponse> findById(@PathVariable Long id) {
         return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -60,8 +54,8 @@ public class TransactionController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
         service.delete(id);
-        return ResponseEntity.noContent().build();
     }
 }
