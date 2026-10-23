@@ -1,194 +1,287 @@
 package com.example.spring_demo.transaction;
 
+import com.example.spring_demo.user.User;
+import com.example.spring_demo.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(username = "test@example.com")
 class TransactionIntegrationTest {
-	@Autowired
-	private MockMvc mockMvc;
 
-	@Autowired
-	private TransactionRepository repository;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@Autowired
-	private ObjectMapper mapper;
+    @Autowired
+    private TransactionRepository repository;
 
-	private String objectAsJson(Object object) {
-		try {
-			return mapper.writeValueAsString(object);
-		} catch (JacksonException e) {
-			return "";
-		}
-	}
+    @Autowired
+    private UserRepository userRepository;
 
-	@BeforeEach
-	public void cleanRepository() {
-		repository.deleteAll();
-	}
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-	@Test
-	public void shouldCreateTransactionOnPost() throws Exception {
-		Transaction transaction = new Transaction(BigDecimal.valueOf(100, 2), LocalDate.now(), "Groceries");
+    @Autowired
+    private ObjectMapper mapper;
 
-		mockMvc.perform(post("/api/transactions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectAsJson(transaction)))
-				.andExpect(status().isCreated());
+    private User user;
 
-		List<Transaction> transactions = repository.findAll();
+    @BeforeEach
+    void setUp() {
+        repository.deleteAll();
+        userRepository.deleteAll();
 
-		assertNotNull(transactions.get(0).getId());
+        user = userRepository.save(
+                new User(
+                        "test@example.com",
+                        passwordEncoder.encode("password")
+                )
+        );
+    }
 
-		assertThat(transactions.get(0))
-			.usingRecursiveComparison()
-			.ignoringFields("id")
-			.isEqualTo(transaction);
-	}
+    private String objectAsJson(Object object) throws Exception {
+        return mapper.writeValueAsString(object);
+    }
 
-	@Test
-	public void shouldNotUseIdSpecifiedByUser() throws Exception {
-		mockMvc.perform(
-						post("/api/transactions")
-								.contentType(MediaType.APPLICATION_JSON)
-								.content("""
-                            {
-                                "id": 100000000000,
-                                "amount": 10.00,
-                                "date": "2026-10-06",
-                                "title": "this is a description"
-                            }
-                        """))
-				.andExpect(status().isCreated());
+    private Transaction createTransaction(
+            BigDecimal amount,
+            LocalDate date,
+            String title,
+            String description
+    ) {
+        Transaction transaction = new Transaction();
+        transaction.setAmount(amount);
+        transaction.setDate(date);
+        transaction.setTitle(title);
+        transaction.setDescription(description);
+        transaction.setUser(user);
+        return transaction;
+    }
 
-		assertThat(repository.findAll().get(0).getId()).isNotEqualTo(100000000000L);
-	}
+    @Test
+    void shouldCreateTransactionOnPost() throws Exception {
+        mockMvc.perform(post("/api/transactions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 1.00,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.amount").value(1.00))
+                .andExpect(jsonPath("$.title").value("Groceries"));
 
-	@Test
-	public void shouldFindAllOnGet() throws Exception {
-		int sum = 0;
-		List<Transaction> transactions = new ArrayList<>();
-		for (int i = 0; i < 10; i++) {
-			Transaction transaction = new Transaction();
-			transactions.add(transaction);
-			transaction.setAmount(BigDecimal.valueOf(sum += 10, 2));
-			transaction.setDate(LocalDate.now());
-			transaction.setTitle("Transaction");
-			transaction.setDescription("Groceries");
-			repository.save(transaction);
-		}
+        List<Transaction> transactions = repository.findAll();
 
-		mockMvc.perform(get("/api/transactions"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.length()").value(10))
-				.andExpect(content().json(objectAsJson(transactions)));
-	}
+        assertThat(transactions).hasSize(1);
+        assertNotNull(transactions.get(0).getId());
+        assertEquals(user.getId(), transactions.get(0).getUser().getId());
+        assertEquals(new BigDecimal("1.00"), transactions.get(0).getAmount());
+        assertEquals(LocalDate.of(2026, 10, 6), transactions.get(0).getDate());
+    }
 
-	@Test
-	public void shouldReturnEmptyListOnGetIfEmpty() throws Exception {
-		mockMvc.perform(get("/api/transactions"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.length()").value(0));
-	}
+    @Test
+    void shouldNotUseIdSpecifiedByUser() throws Exception {
+        mockMvc.perform(post("/api/transactions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "id": 100000000000,
+                                    "amount": 10.00,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isCreated());
 
-	@Test
-	public void shouldFindById() throws Exception {
-		Transaction transaction = new Transaction(new BigDecimal(10), LocalDate.parse("2013-04-12"), "Groceries");
-		repository.save(transaction);
+        Transaction saved = repository.findAll().get(0);
 
-		mockMvc.perform(get("/api/transactions/1"))
-				.andExpect(status().isOk())
-				.andExpect(content().json(objectAsJson(transaction)));
-	}
+        assertNotNull(saved.getId());
+        assertThat(saved.getId()).isNotEqualTo(100000000000L);
+    }
 
-	@Test
-	public void shouldUpdateTransaction() throws Exception {
-		Transaction transaction = new Transaction(BigDecimal.valueOf(500, 2), LocalDate.parse("2018-02-28"), "Groceries");
-		transaction = repository.save(transaction);
-		long id = transaction.getId();
+    @Test
+    void shouldFindAllOnGet() throws Exception {
+        List<Transaction> transactions = new ArrayList<>();
 
-		mockMvc.perform(put("/api/transactions/" + id)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-							{
-								"amount": 10.00,
-								"date": "2026-10-05",
-								"title": "Groceries"
-							}
-						"""))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.amount").value("10.0"));
-	}
+        for (int i = 1; i <= 10; i++) {
+            transactions.add(createTransaction(
+                    BigDecimal.valueOf(i * 10L, 2),
+                    LocalDate.now(),
+                    "Transaction",
+                    "Groceries"
+            ));
+        }
 
-	@Test
-	public void shouldDeleteTransaction() throws Exception {
-		Transaction transaction = new Transaction(BigDecimal.valueOf(500, 2), LocalDate.parse("2018-02-28"), "Groceries");
-		transaction = repository.save(transaction);
-		long id = transaction.getId();
+        repository.saveAll(transactions);
 
-		mockMvc.perform(delete("/api/transactions/" + id))
-				.andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(10))
+                .andExpect(jsonPath("$.totalElements").value(10));
+    }
 
-		assertThat(repository.findAll().size()).isEqualTo(0);
-	}
+    @Test
+    void shouldReturnEmptyPageOnGetIfEmpty() throws Exception {
+        mockMvc.perform(get("/api/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
 
-	@Test
-	void updateTransactionShouldPersistAllChanges() throws Exception {
-		// Arrange: save an existing transaction
-		Transaction existing = new Transaction();
-		existing.setAmount(new BigDecimal("25.00"));
-		existing.setDate(LocalDate.of(2026, 10, 1));
-		existing.setTitle("Old title");
-		existing.setDescription("Old description");
+    @Test
+    void shouldFindById() throws Exception {
+        Transaction transaction = repository.save(createTransaction(
+                new BigDecimal("10.00"),
+                LocalDate.parse("2013-04-12"),
+                "Groceries",
+                ""
+        ));
 
-		existing = repository.saveAndFlush(existing);
+        mockMvc.perform(get("/api/transactions/{id}", transaction.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(transaction.getId()))
+                .andExpect(jsonPath("$.amount").value(10.00))
+                .andExpect(jsonPath("$.title").value("Groceries"))
+                .andExpect(jsonPath("$.date").value("2013-04-12"));
+    }
 
-		Long id = existing.getId();
+    @Test
+    void shouldUpdateTransaction() throws Exception {
+        Transaction transaction = repository.save(createTransaction(
+                new BigDecimal("5.00"),
+                LocalDate.parse("2018-02-28"),
+                "Groceries",
+                ""
+        ));
 
-		// Build the updated transaction
-		Transaction updated = new Transaction();
-		updated.setAmount(new BigDecimal("99.50"));
-		updated.setDate(LocalDate.of(2026, 10, 9));
-		updated.setTitle("New title");
-		updated.setDescription("New description");
+        mockMvc.perform(put("/api/transactions/{id}", transaction.getId())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 10.00,
+                                    "date": "2026-10-05",
+                                    "title": "Groceries",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amount").value(10.00))
+                .andExpect(jsonPath("$.date").value("2026-10-05"))
+                .andExpect(jsonPath("$.title").value("Groceries"));
 
-		mockMvc.perform(put("/api/transactions/{id}", id)
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(mapper.writeValueAsString(updated)))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.title").value("New title"))
-				.andExpect(jsonPath("$.amount").value(99.50))
-				.andExpect(jsonPath("$.description").value("New description"));
+        Transaction saved = repository.findById(transaction.getId())
+                .orElseThrow();
 
-		// Assert: verify the database actually changed
-		Transaction saved = repository.findById(id).orElseThrow();
+        assertEquals(new BigDecimal("10.00"), saved.getAmount());
+        assertEquals(LocalDate.of(2026, 10, 5), saved.getDate());
+        assertEquals("Groceries", saved.getTitle());
+        assertEquals(user.getId(), saved.getUser().getId());
+    }
 
-		assertEquals("New title", saved.getTitle());
-		assertEquals(new BigDecimal("99.50"), saved.getAmount());
-		assertEquals(LocalDate.of(2026, 10, 9), saved.getDate());
-		assertEquals("New description", saved.getDescription());
-	}
+    @Test
+    void shouldDeleteTransaction() throws Exception {
+        Transaction transaction = repository.save(createTransaction(
+                new BigDecimal("5.00"),
+                LocalDate.parse("2018-02-28"),
+                "Groceries",
+                ""
+        ));
+
+        mockMvc.perform(delete("/api/transactions/{id}", transaction.getId())
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        assertThat(repository.findAll()).isEmpty();
+    }
+
+    @Test
+    void updateTransactionShouldPersistAllChanges() throws Exception {
+        Transaction existing = repository.saveAndFlush(createTransaction(
+                new BigDecimal("25.00"),
+                LocalDate.of(2026, 10, 1),
+                "Old title",
+                "Old description"
+        ));
+
+        Long id = existing.getId();
+
+        mockMvc.perform(put("/api/transactions/{id}", id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 99.50,
+                                    "date": "2026-10-09",
+                                    "title": "New title",
+                                    "description": "New description"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New title"))
+                .andExpect(jsonPath("$.amount").value(99.50))
+                .andExpect(jsonPath("$.description").value("New description"));
+
+        Transaction saved = repository.findById(id).orElseThrow();
+
+        assertEquals("New title", saved.getTitle());
+        assertEquals(new BigDecimal("99.50"), saved.getAmount());
+        assertEquals(LocalDate.of(2026, 10, 9), saved.getDate());
+        assertEquals("New description", saved.getDescription());
+        assertEquals(user.getId(), saved.getUser().getId());
+    }
+
+    @Test
+    void shouldNotReturnAnotherUsersTransaction() throws Exception {
+        User anotherUser = userRepository.save(
+                new User(
+                        "another@example.com",
+                        passwordEncoder.encode("password")
+                )
+        );
+
+        Transaction otherTransaction = new Transaction();
+        otherTransaction.setAmount(new BigDecimal("15.00"));
+        otherTransaction.setDate(LocalDate.of(2026, 10, 10));
+        otherTransaction.setTitle("Private transaction");
+        otherTransaction.setDescription("");
+        otherTransaction.setUser(anotherUser);
+
+        otherTransaction = repository.saveAndFlush(otherTransaction);
+
+        mockMvc.perform(get(
+                        "/api/transactions/{id}",
+                        otherTransaction.getId()
+                ))
+                .andExpect(status().isNotFound());
+    }
 }

@@ -1,4 +1,4 @@
-package com.example.spring_demo.auth.dtos;
+package com.example.spring_demo.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

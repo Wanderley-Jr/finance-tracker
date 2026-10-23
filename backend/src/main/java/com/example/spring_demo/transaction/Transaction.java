@@ -1,5 +1,6 @@
 package com.example.spring_demo.transaction;
 
+import com.example.spring_demo.user.User;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
@@ -34,6 +35,18 @@ public class Transaction {
     @NotNull
     @Column(nullable = false)
     private String description = "";
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 
     public Transaction() {
     }
