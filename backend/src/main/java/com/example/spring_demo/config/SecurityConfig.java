@@ -1,5 +1,6 @@
 package com.example.spring_demo.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -29,10 +30,25 @@ public class SecurityConfig {
                 )
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
+                        .successHandler((request, response, authentication) ->
+                                response.setStatus(HttpServletResponse.SC_OK)
+                        )
+                        .failureHandler((request, response, exception) ->
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
+                        )
                         .permitAll()
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                        )
+                )
+
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
+                        .logoutSuccessHandler((request, response, authentication) ->
+                                response.setStatus(HttpServletResponse.SC_NO_CONTENT)
+                        )
                         .permitAll()
                 )
                 .csrf(csrf -> csrf

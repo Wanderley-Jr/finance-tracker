@@ -30,7 +30,7 @@ export default function LoginPage() {
 
     return (
         <main className="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-body-tertiary py-4">
-            <section className="card border-0 shadow-sm w-100" style={{ maxWidth: "420px" }}>
+            <section className="card border-0 shadow-sm w-100" >
                 <div className="card-body p-4 p-md-5">
                     <header className="text-center mb-4">
                         <i className="bi bi-wallet2 text-success fs-1" aria-hidden="true" />

@@ -32,11 +32,11 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
     const [peekedTransaction, setPreviewedTransaction] = useState<Transaction | null>(null)
 
     const monthlyTransactions = transactions.filter(it => toDate(it.date).getMonth() === toDate(selectedMonth).getMonth()).map(it => it.amount)
-    const income = monthlyTransactions.filter(it => it > 0).reduce((prev, cur) => prev+cur, 0)
-    const expenses = monthlyTransactions.filter(it => it < 0).reduce((prev, cur) => prev+cur, 0)
+    const income = monthlyTransactions.filter(it => it > 0).reduce((prev, cur) => prev + cur, 0)
+    const expenses = monthlyTransactions.filter(it => it < 0).reduce((prev, cur) => prev + cur, 0)
 
     const handleOpen = () => setShowModal(true);
-    const handleClose = () => setShowModal(false); 
+    const handleClose = () => setShowModal(false);
 
     return (
         <>
@@ -77,6 +77,14 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
                                     hasTransactionsGreen: "bg-success bg-opacity-50 rounded-circle",
                                     hasTransactionsRed: "bg-danger bg-opacity-50 rounded-circle",
                                 }}
+                                onDayKeyDown={(day, modifiers, event) => {
+                                    if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+
+                                        handleOpen()
+                                    }
+                                }}
                             />
                         </div>
 
@@ -107,12 +115,12 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
                             <div className="col-4 border-start border-end">
                                 <small className="text-body-secondary d-block">Expenses</small>
                                 <MoneyAmount amount={expenses} hideSign />
-                                
+
                             </div>
 
                             <div className="col-4">
                                 <small className="text-body-secondary d-block">Balance</small>
-                                <MoneyAmount amount={income+expenses} />
+                                <MoneyAmount amount={income + expenses} />
                             </div>
                         </div>
                     )}

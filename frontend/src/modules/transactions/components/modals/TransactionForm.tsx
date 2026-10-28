@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from "react"
+import { useEffect, useState, type ComponentProps, type SubmitEvent } from "react"
 import type { Transaction } from "../../transactionService"
 import { parseLocalDate, type LocalDate } from "../../../../app/localDate"
 
@@ -21,20 +21,22 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
         setDate(initialData?.date ?? null)
     }, [initialData])
 
+    const handleSubmit = (e?: SubmitEvent<HTMLFormElement>) => {
+        e?.preventDefault()
+
+        const transaction: Transaction = {
+            id: initialData?.id,
+            amount: Number(amount),
+            title,
+            description,
+            date: overrideDate ?? date!,
+        };
+
+        onSubmit(transaction)
+    }
+
     return (
-        <form {...props} onSubmit={(e) => {
-            e.preventDefault()
-
-            const transaction: Transaction = {
-                id: initialData?.id,
-                amount: Number(amount),
-                title,
-                description,
-                date: overrideDate ?? date!,
-            };
-
-            onSubmit(transaction)
-        }}>
+        <form {...props} onSubmit={handleSubmit}>
             <div className="row">
                 <div className="mb-3">
                     <label htmlFor="amount" className="form-label">
@@ -42,6 +44,7 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
                     </label>
 
                     <input
+                        autoFocus
                         type="number"
                         className="form-control"
                         id="amount"
@@ -101,6 +104,12 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
                         onChange={(e) => setDescription(e.target.value)}
                         minLength={0}
                         maxLength={300}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" && !event.shiftKey && event.code !== "NumpadEnter") {
+                                event.preventDefault();
+                                event.currentTarget.form?.requestSubmit();
+                            }
+                        }}
                     />
                 </div>
             </div>
