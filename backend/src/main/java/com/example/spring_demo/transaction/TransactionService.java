@@ -1,5 +1,6 @@
 package com.example.spring_demo.transaction;
 
+import com.example.spring_demo.exception.TransactionNotFoundException;
 import com.example.spring_demo.transaction.dto.TransactionRequest;
 import com.example.spring_demo.transaction.dto.TransactionResponse;
 import com.example.spring_demo.user.CurrentUserService;
@@ -11,13 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
-
-class TransactionNotFoundException extends RuntimeException {
-
-    public TransactionNotFoundException(Long id) {
-        super("Transaction with id " + id + " not found");
-    }
-}
 
 @Service
 public class TransactionService {

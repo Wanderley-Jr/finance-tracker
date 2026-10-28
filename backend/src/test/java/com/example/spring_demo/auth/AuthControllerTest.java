@@ -1,5 +1,6 @@
 package com.example.spring_demo.auth;
 
+import com.example.spring_demo.user.User;
 import com.example.spring_demo.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +11,10 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Locale;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
@@ -126,7 +129,9 @@ class AuthControllerTest {
     }
 
     @Test
-    void logoutInvalidatesAuthentication() throws Exception {
+    void logoutReturnsNoContentAndInvalidatesAuthentication()
+            throws Exception {
+
         String email = uniqueEmail();
         String password = "TestPassword123!";
 
@@ -145,10 +150,41 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/logout")
                         .session(session)
                         .with(csrf()))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void registerWithExistingEmailReturnsConflict() throws Exception {
+        String email = uniqueEmail();
+
+        registerUser(email, "TestPassword123!");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "%s",
+                                    "password": "TestPassword123!"
+                                }
+                                """.formatted(email.toUpperCase(Locale.ROOT))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void registerPersistsCanonicalEmail() throws Exception {
+        String email = "Test-" + UUID.randomUUID() + "@Example.com";
+
+        registerUser(email, "TestPassword123!");
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow();
+
+        assertThat(user.getEmail())
+                .isEqualTo(email.toLowerCase(Locale.ROOT));
     }
 }
 

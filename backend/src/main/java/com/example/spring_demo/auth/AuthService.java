@@ -1,6 +1,7 @@
 package com.example.spring_demo.auth;
 
 import com.example.spring_demo.auth.dto.RegisterRequest;
+import com.example.spring_demo.exception.EmailAlreadyRegisteredException;
 import com.example.spring_demo.user.User;
 import com.example.spring_demo.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -9,12 +10,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
-
-class EmailAlreadyRegisteredException extends RuntimeException {
-    public EmailAlreadyRegisteredException() {
-        super("Email is already registered.");
-    }
-}
 
 @Service
 public class AuthService {

@@ -284,4 +284,184 @@ class TransactionIntegrationTest {
                 ))
                 .andExpect(status().isNotFound());
     }
+
+    // --- Error mapping: unhandled domain exceptions ---
+
+    @Test
+    void shouldReturnNotFoundWhenUpdatingMissingTransaction() throws Exception {
+        mockMvc.perform(put("/api/transactions/{id}", 999_999L)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 10.00,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenUpdatingAnotherUsersTransaction() throws Exception {
+        User anotherUser = userRepository.save(
+                new User(
+                        "another@example.com",
+                        passwordEncoder.encode("password")
+                )
+        );
+
+        Transaction otherTransaction = new Transaction();
+        otherTransaction.setAmount(new BigDecimal("15.00"));
+        otherTransaction.setDate(LocalDate.of(2026, 10, 10));
+        otherTransaction.setTitle("Private transaction");
+        otherTransaction.setDescription("");
+        otherTransaction.setUser(anotherUser);
+
+        Long id = repository.saveAndFlush(otherTransaction).getId();
+
+        mockMvc.perform(put("/api/transactions/{id}", id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 1.00,
+                                    "date": "2026-10-11",
+                                    "title": "Hijacked",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isNotFound());
+
+        Transaction unchanged = repository.findById(id).orElseThrow();
+        assertEquals("Private transaction", unchanged.getTitle());
+        assertEquals(new BigDecimal("15.00"), unchanged.getAmount());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenDeletingMissingTransaction() throws Exception {
+        mockMvc.perform(delete("/api/transactions/{id}", 999_999L)
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenDeletingAnotherUsersTransaction() throws Exception {
+        User anotherUser = userRepository.save(
+                new User(
+                        "another@example.com",
+                        passwordEncoder.encode("password")
+                )
+        );
+
+        Transaction otherTransaction = new Transaction();
+        otherTransaction.setAmount(new BigDecimal("15.00"));
+        otherTransaction.setDate(LocalDate.of(2026, 10, 10));
+        otherTransaction.setTitle("Private transaction");
+        otherTransaction.setDescription("");
+        otherTransaction.setUser(anotherUser);
+
+        Long id = repository.saveAndFlush(otherTransaction).getId();
+
+        mockMvc.perform(delete("/api/transactions/{id}", id)
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+
+        assertThat(repository.findById(id)).isPresent();
+    }
+
+    // --- Amount scale: RoundingMode.UNNECESSARY throws ArithmeticException ---
+
+    @Test
+    void shouldRejectAmountWithMoreThanTwoDecimalsOnCreate() throws Exception {
+        mockMvc.perform(post("/api/transactions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 10.999,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        assertThat(repository.findAll()).isEmpty();
+    }
+
+    @Test
+    void shouldRejectAmountWithMoreThanTwoDecimalsOnUpdate() throws Exception {
+        Transaction transaction = repository.saveAndFlush(createTransaction(
+                new BigDecimal("10.00"),
+                LocalDate.of(2026, 10, 6),
+                "Groceries",
+                ""
+        ));
+
+        mockMvc.perform(put("/api/transactions/{id}", transaction.getId())
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 10.999,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries",
+                                    "description": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        Transaction unchanged = repository.findById(transaction.getId()).orElseThrow();
+        assertEquals(new BigDecimal("10.00"), unchanged.getAmount());
+    }
+
+    // --- Nullable description ---
+
+    @Test
+    void shouldCreateTransactionWhenDescriptionIsOmitted() throws Exception {
+        mockMvc.perform(post("/api/transactions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 10.00,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").value(""));
+
+        assertEquals("", repository.findAll().get(0).getDescription());
+    }
+
+    @Test
+    void shouldCreateTransactionWhenDescriptionIsNull() throws Exception {
+        mockMvc.perform(post("/api/transactions")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "amount": 10.00,
+                                    "date": "2026-10-06",
+                                    "title": "Groceries",
+                                    "description": null
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").value(""));
+
+        assertEquals("", repository.findAll().get(0).getDescription());
+    }
+
+    // --- Sorting by a property that does not exist ---
+
+    @Test
+    void shouldRejectSortByUnknownProperty() throws Exception {
+        mockMvc.perform(get("/api/transactions")
+                        .param("sort", "doesNotExist,asc"))
+                .andExpect(status().isBadRequest());
+    }
 }
