@@ -1,20 +1,18 @@
 import { useState } from "react";
-import { type Transaction, type TransactionQueryParams } from "../transactionService";
+import { type TransactionQueryParams } from "../transactionService";
 import TransactionList from "./TransactionList";
 import { parseLocalDate, type LocalDate } from "../../../app/localDate";
 
-interface TransactionHistoryProps {
-    transactions: Transaction[]
-}
+type SortOption = Exclude<TransactionQueryParams["sort"], undefined>[0]
 
-type SortOption = Exclude<TransactionQueryParams["sort"], undefined>[0] 
-
-export default function TransactionHistory({ }: TransactionHistoryProps) {
+export default function TransactionHistory() {
     const [search, setSearch] = useState("")
     const [startDate, setStartDate] = useState<LocalDate | null>(null)
     const [endDate, setEndDate] = useState<LocalDate | null>(null)
     const [sortingBy, setSortingBy] = useState<SortOption>("date,desc")
     const [titleOnly, setTitleOnly] = useState(false);
+
+    const searchQuery = search.trim() === "" ? undefined : search;
 
     return (
         <div className="card">
@@ -68,8 +66,14 @@ export default function TransactionHistory({ }: TransactionHistoryProps) {
                         <input
                             type="date"
                             className="form-control"
-                            value={startDate ?? undefined}
-                            onChange={e => setStartDate(parseLocalDate(e.target.value))}
+                            value={startDate ?? ""}
+                            onChange={e =>
+                                setStartDate(
+                                    e.target.value
+                                        ? parseLocalDate(e.target.value)
+                                        : null
+                                )
+                            }
                         />
                     </div>
 
@@ -81,8 +85,14 @@ export default function TransactionHistory({ }: TransactionHistoryProps) {
                         <input
                             type="date"
                             className="form-control"
-                            value={endDate ?? undefined}
-                            onChange={e => setEndDate(parseLocalDate(e.target.value))}
+                            value={endDate ?? ""}
+                            onChange={e =>
+                                setEndDate(
+                                    e.target.value
+                                        ? parseLocalDate(e.target.value)
+                                        : null
+                                )
+                            }
                         />
                     </div>
 
@@ -110,8 +120,15 @@ export default function TransactionHistory({ }: TransactionHistoryProps) {
 
                 <TransactionList
                     emptyNode={<span className="text-secondary">No transactions found yet.</span>}
-                    queryParams={{ title: search, startDate: startDate ?? undefined, endDate: endDate ?? undefined, sort: [sortingBy] }}
-                    showDate        
+                    queryParams={{
+                        ...(titleOnly
+                            ? { title: searchQuery }
+                            : { search: searchQuery }),
+                        startDate: startDate ?? undefined,
+                        endDate: endDate ?? undefined,
+                        sort: [sortingBy],
+                    }}
+                    showDate
                 />
             </div>
         </div>

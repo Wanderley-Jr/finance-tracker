@@ -36,10 +36,10 @@ describe("MoneyAmount", () => {
         expect(node.textContent).not.toContain("-");
     });
 
-    it("[KNOWN BUG] a zero balance is not rendered as a negative amount", () => {
-        // amount > 0 ? text-success : text-danger, so 0 is treated as an
-        // expense: the calendar footer and the dashboard show "- R$ 0,00" in
-        // red for an empty/neutral balance.
+    it("a zero balance is not rendered as a negative amount", () => {
+        // The old `amount > 0 ? text-success : text-danger` ternary treated 0
+        // as an expense: the calendar footer and the dashboard showed
+        // "- R$ 0,00" in red for an empty/neutral balance.
         const { node } = renderedNode(0);
 
         expect(node.textContent).not.toContain("-");

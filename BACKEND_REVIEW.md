@@ -1,10 +1,8 @@
 # Backend review — spring-demo
 
-Status as of 2026-11-17 (after commit `74fdcc3`): **54 tests, all green**. The original
-45 tests and the second-pass payload/validation/exception/locale tests pass. A
-third-pass test found that the over-long-password error echoed the plaintext password;
-the production fix was applied in the working tree while the test was being written, so
-the suite is green again.
+Status as of 2026-11-17 (working tree on top of `8e274f5`): **56 tests, all green**. The
+original 45 tests, the second-pass payload/validation/exception/locale tests, the
+third-pass password-leak reproduction and two new search-filter tests all pass.
 
 Run everything:
 
@@ -12,11 +10,12 @@ Run everything:
 $env:JAVA_HOME="C:\Users\wanderleyatj\.jdks\temurin-25.0.3"
 cd backend
 .\gradlew test
-# 54 tests completed, 0 failed
+# 56 tests completed, 0 failed
 .\gradlew test --tests "com.example.spring_demo.review.KnownBackendIssuesTest"
 ```
 
-See §6 for the third-pass finding and the list of issues that were fixed.
+See §6 for the third-pass finding, the frontend-driven search filter, and the list of
+issues that were fixed.
 
 > Historical context below (§1–§5) documents the first review pass, when the suite was
 > `45 tests, 15 red`. It is kept for reference.
@@ -288,10 +287,10 @@ than fixed in `src/main`.
 All 15 bugs from §2 are fixed and their tests are green. The eight issues found in the
 second pass were fixed in `74fdcc3` as well (title/description limits, the 72-byte
 password guard, `UserNotFoundException` → 404, the two locale-sensitive searches). A
-third pass over `src/main` found one more issue, fixed in the working tree immediately
-after the test was added.
+third pass over `src/main` found one more issue, fixed in `8e274f5`, and a later
+frontend fix added a general search filter with two tests in the working tree.
 
-### 6.1 Third pass — fixed in the working tree (uncommitted)
+### 6.1 Third pass — fixed in `8e274f5`
 
 | # | Test | Was | Now |
 |---|---|---|---|
@@ -315,7 +314,29 @@ The root cause was that `InvalidPasswordException` interpolated the raw password
 Confirmed while writing the third-pass tests: **login with a >72-byte password already
 returns 401, not 500**, so the byte guard is only needed on registration.
 
-### 6.3 Findings without a failing test
+### 6.3 General search filter (working tree)
+
+The "Title only" switch needs two different semantics, which the old field-specific
+filters could not express without sending `title` **and** `description` as an AND.
+
+- `GET /api/transactions` accepts an optional `search` parameter.
+- `TransactionSpecs.withFilters` adds it as `lower(title) LIKE %q% OR
+  lower(description) LIKE %q%`, escaping `%`/`_` with `EscapeCharacter.DEFAULT` and
+  lowercasing with `Locale.ROOT`.
+- `title` and `description` remain field-specific and are still combined with AND, so
+  existing clients are unaffected.
+
+Two tests were added to `TransactionFilteringTest`:
+
+| Test | Expects |
+|---|---|
+| `searchMatchesTitleOrDescriptionCaseInsensitively` | `search=GROC` matches a title hit and a description hit |
+| `percentInSearchIsNotTreatedAsWildcard` | `search=100%` matches only the literal `100%` row |
+
+The frontend sends `search` when "Title only" is off and `title` when it is on (see
+`FRONTEND_REVIEW.md` §2). Backend suite: **56 tests, all green**.
+
+### 6.4 Findings without a failing test
 
 - `TransactionController` still injects `TransactionService` twice (`service` and
   `transactionService`); `ResponseStatusException` is imported but unused in

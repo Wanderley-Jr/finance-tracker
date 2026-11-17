@@ -34,7 +34,9 @@ export function useLogout() {
     return useMutation({
         mutationFn: authService.logout,
         onSuccess: async () => {
-            queryClient.setQueryData(currentUserQueryKey, null)
+            // Drop every cached query (transactions included) so the next
+            // account on this tab cannot see the previous user's data.
+            queryClient.clear()
         }
     })
 }

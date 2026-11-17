@@ -46,11 +46,10 @@ describe("authService", () => {
         );
     });
 
-    it("[KNOWN BUG] bootstraps a CSRF token before registering", async () => {
+    it("bootstraps a CSRF token before registering", async () => {
         // POST /api/auth/register is CSRF-protected. A brand-new visitor has no
-        // XSRF-TOKEN cookie, and unlike login(), register() never calls
-        // GET /api/csrf first, so the first registration attempt is rejected
-        // with 401. Confirmed in a real browser with Playwright.
+        // XSRF-TOKEN cookie, so register() must call GET /api/csrf first (it
+        // used to skip that and the first registration attempt got a 401).
         await register(credentials);
 
         expect(mockedApi.get).toHaveBeenCalledWith("/csrf");

@@ -43,12 +43,11 @@ describe("TransactionForm", () => {
         expect(screen.getByLabelText("Description")).toHaveAttribute("maxLength", "300");
     });
 
-    it("[KNOWN BUG] clearing the date does not crash the form", async () => {
+    it("clearing the date does not crash the form", async () => {
         // The native date input can be cleared (the calendar button has a
-        // "Clear" action and mobile keyboards do too). onChange then calls
-        // parseLocalDate(""), which throws "Invalid LocalDate" from inside the
-        // event handler. The same pattern is used by TransactionHistory and
-        // MonthlyCashFlowChart.
+        // "Clear" action and mobile keyboards do too). onChange now resets the
+        // value to null instead of calling parseLocalDate(""), which threw
+        // "Invalid LocalDate" from inside the event handler.
         render(<TransactionForm id="transaction-form" onSubmit={vi.fn()} />);
 
         const date = screen.getByLabelText("Date");
@@ -61,11 +60,9 @@ describe("TransactionForm", () => {
         expect(date).toHaveValue("");
     });
 
-    it("[KNOWN BUG] requires a date before the form can be submitted", () => {
-        // The date <input type="date"> has no `required` attribute, so an empty
-        // date is not caught by the browser. handleSubmit then sends
-        // `date: null`, the backend answers 400, the modal closes anyway and
-        // the user gets no feedback.
+    it("requires a date before the form can be submitted", () => {
+        // The date input is required, and handleSubmit also refuses to submit
+        // without a date, so the backend never receives `date: null`.
         const { container } = render(
             <TransactionForm id="transaction-form" onSubmit={vi.fn()} />
         );

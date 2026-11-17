@@ -2,9 +2,15 @@ const localDateBrand: unique symbol = Symbol("LocalDate")
 
 export type LocalDate = string & { readonly [localDateBrand]: true }
 
-export function parseLocalDate(value: Date | string = new Date(Date.now())): LocalDate {
+export function toLocalDateString(date: Date): string {
+    const pad = (value: number) => String(value).padStart(2, "0");
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function parseLocalDate(value: Date | string = new Date()): LocalDate {
     if (value instanceof Date) {
-        value = value.toISOString().slice(0, 10);
+        value = toLocalDateString(value);
     }
 
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);

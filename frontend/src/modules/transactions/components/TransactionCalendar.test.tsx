@@ -67,11 +67,10 @@ describe("TransactionCalendar footer totals", () => {
         expect(footerValue("Balance")).toContain("70,00");
     });
 
-    it("[KNOWN BUG] asks for a date before listing transactions", () => {
-        // Until the user picks a day, selectedDate is undefined and the
-        // TransactionList is queried with no date bounds. It therefore shows
-        // the first page of the whole history instead of the
-        // "Select a date to view transactions made" prompt.
+    it("asks for a date before listing transactions", () => {
+        // Until the user picks a day, selectedDate is undefined, so the
+        // TransactionList is not rendered at all and the prompt is shown
+        // instead of the first page of the whole history.
         mockedUseTransactions.mockReturnValue({
             data: {
                 ...emptyPage,
@@ -90,9 +89,9 @@ describe("TransactionCalendar footer totals", () => {
         ).toBeInTheDocument();
     });
 
-    it("[KNOWN BUG] only counts transactions from the selected month of the selected year", () => {
-        // monthlyTransactions compares `getMonth()` only. A transaction from
-        // November 2025 is added to the November 2026 footer totals.
+    it("only counts transactions from the selected month of the selected year", () => {
+        // The footer totals compare both month and year, so a transaction from
+        // November 2025 is not added to the November 2026 totals.
         const today = new Date();
         const month = String(today.getMonth() + 1).padStart(2, "0");
         const thisYear = `${today.getFullYear()}-${month}-15`;

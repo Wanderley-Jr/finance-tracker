@@ -40,23 +40,24 @@ beforeEach(() => {
 });
 
 describe("TransactionHistory", () => {
-    it("sends the search text as the title filter", async () => {
+    it("searches titles and descriptions by default", async () => {
         const user = userEvent.setup();
 
-        render(<TransactionHistory transactions={[]} />);
+        render(<TransactionHistory />);
 
         await user.type(
             screen.getByPlaceholderText("Search transactions..."),
             "coffee"
         );
 
-        expect(lastQueryParams()).toMatchObject({ title: "coffee" });
+        expect(lastQueryParams()).toMatchObject({ search: "coffee" });
+        expect(lastQueryParams()?.title).toBeUndefined();
     });
 
     it("sends the selected sort option to the backend", async () => {
         const user = userEvent.setup();
 
-        render(<TransactionHistory transactions={[]} />);
+        render(<TransactionHistory />);
 
         await user.selectOptions(
             screen.getByDisplayValue("Date (newest first)"),
@@ -66,11 +67,10 @@ describe("TransactionHistory", () => {
         expect(lastQueryParams()).toMatchObject({ sort: ["amount,asc"] });
     });
 
-    it("[KNOWN BUG] clearing a date filter does not crash the history", async () => {
-        // Same root cause as the form: onChange calls parseLocalDate("") when
-        // the native date input is cleared, which throws from inside the
-        // handler instead of resetting the filter.
-        const { container } = render(<TransactionHistory transactions={[]} />);
+    it("clearing a date filter does not crash the history", async () => {
+        // Clearing the native date input used to call parseLocalDate("") from
+        // inside the handler, which threw instead of resetting the filter.
+        const { container } = render(<TransactionHistory />);
 
         const from = container.querySelector(
             'input[type="date"]'
@@ -85,27 +85,24 @@ describe("TransactionHistory", () => {
         expect(from).toHaveValue("");
     });
 
-    // it("[KNOWN BUG] the 'Title only' switch changes what is searched", async () => {
-    //     // TransactionHistory never sends a `description` filter, so searching
-    //     // with the switch off (the default) only matches titles. The switch
-    //     // state `titleOnly` is read by nothing and therefore has no effect.
-    //     const user = userEvent.setup();
+    it("the 'Title only' switch changes what is searched", async () => {
+        // Off (default) sends `search`, which the backend matches against the
+        // title OR the description. On sends `title`, which matches only the
+        // title.
+        const user = userEvent.setup();
 
-    //     render(<TransactionHistory transactions={[]} />);
+        render(<TransactionHistory />);
 
-    //     await user.type(
-    //         screen.getByPlaceholderText("Search transactions..."),
-    //         "coffee"
-    //     );
+        await user.type(
+            screen.getByPlaceholderText("Search transactions..."),
+            "coffee"
+        );
 
-    //     expect(lastQueryParams()).toMatchObject({
-    //         title: "coffee",
-    //         description: "coffee",
-    //     });
+        expect(lastQueryParams()).toMatchObject({ search: "coffee" });
 
-    //     await user.click(screen.getByRole("switch"));
+        await user.click(screen.getByRole("switch"));
 
-    //     expect(lastQueryParams()).toMatchObject({ title: "coffee" });
-    //     expect(lastQueryParams()?.description).toBeUndefined();
-    // });
+        expect(lastQueryParams()).toMatchObject({ title: "coffee" });
+        expect(lastQueryParams()?.search).toBeUndefined();
+    });
 });

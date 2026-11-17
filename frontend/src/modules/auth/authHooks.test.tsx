@@ -12,11 +12,10 @@ vi.mock("./authService", async (importOriginal) => {
 });
 
 describe("useLogout", () => {
-    it("[KNOWN BUG] clears cached financial data so the next account cannot see it", async () => {
-        // Signing out only sets the "auth/me" cache entry to null. Every
-        // "transactions" query fired by the dashboard/calendar stays in the
-        // cache, so the next account that signs in on the same tab is shown
-        // the previous user's transactions until the refetch finishes.
+    it("clears cached financial data so the next account cannot see it", async () => {
+        // Signing out used to only set the "auth/me" cache entry to null, so
+        // every "transactions" query stayed cached and the next account on the
+        // same tab briefly saw the previous user's transactions.
         vi.mocked(authService.logout).mockResolvedValue();
 
         const queryClient = new QueryClient();

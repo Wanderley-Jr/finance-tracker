@@ -11,7 +11,10 @@ export default function Pagination({ pageIndex, totalPages, maxVisiblePages, onP
             <ul className="pagination pagination-sm">
                 <li className="page-item">
                     <button
+                        type="button"
+                        aria-label="First page"
                         className={`page-link ${pageIndex == 0 ? "disabled" : ""}`}
+                        disabled={pageIndex == 0}
                         onClick={() => onPageChange(0)}
                     >
                         <i className={`bi bi-chevron-double-left`}></i>
@@ -19,7 +22,10 @@ export default function Pagination({ pageIndex, totalPages, maxVisiblePages, onP
                 </li>
                 <li className="page-item">
                     <button
+                        type="button"
+                        aria-label="Previous page"
                         className={`page-link ${pageIndex == 0 ? "disabled" : ""}`}
+                        disabled={pageIndex == 0}
                         onClick={() => onPageChange(Math.max(0, pageIndex - 1))}
                     >
                         <i className="bi bi-chevron-left"></i>
@@ -37,7 +43,12 @@ export default function Pagination({ pageIndex, totalPages, maxVisiblePages, onP
                             className={`page-item ${start + i == pageIndex ? "active" : ""}`}
                             onClick={() => onPageChange(start + i)}
                         >
-                            <button style={{ minWidth: "35px" }} className="page-link">
+                            <button
+                                type="button"
+                                style={{ minWidth: "35px" }}
+                                className="page-link"
+                                aria-current={start + i == pageIndex ? "page" : undefined}
+                            >
                                 {start + i + 1}
                             </button>
                         </li>
@@ -45,7 +56,10 @@ export default function Pagination({ pageIndex, totalPages, maxVisiblePages, onP
                 })}
                 <li className="page-item">
                     <button
+                        type="button"
+                        aria-label="Next page"
                         className={`page-link ${pageIndex + 1 == totalPages ? "disabled" : ""}`}
+                        disabled={pageIndex + 1 >= totalPages}
                         onClick={() => onPageChange(Math.min(pageIndex + 1, totalPages - 1))}
                     >
                         <i className={`bi bi-chevron-right`}></i>
@@ -53,7 +67,10 @@ export default function Pagination({ pageIndex, totalPages, maxVisiblePages, onP
                 </li>
                 <li className="page-item">
                     <button
+                        type="button"
+                        aria-label="Last page"
                         className={`page-link ${pageIndex + 1 == totalPages ? "disabled" : ""}`}
+                        disabled={pageIndex + 1 >= totalPages}
                         onClick={() => onPageChange(totalPages - 1)}
                     >
                         <i className="bi bi-chevron-double-right"></i>

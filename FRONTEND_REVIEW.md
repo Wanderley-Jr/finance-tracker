@@ -1,15 +1,15 @@
 # Frontend review — spring-demo
 
-Status as of 2026-11-17 (after commit `74fdcc3`): **27 tests, 22 green, 5 red.** The
-seven first-pass red tests now pass because the application was fixed in `74fdcc3`
-(their names still contain `[KNOWN BUG]`). The "Title only" test is commented out
-because that feature is **postponed**. The five red tests are new third-pass
-reproductions, all tagged `[KNOWN BUG]`.
+Status as of 2026-11-17 (working tree on top of `8e274f5`): **28 tests, all green**.
+`npx tsc -b` and `npm run lint` are clean, and every `[KNOWN BUG]` tag has been removed
+from the test names because the underlying bug is fixed.
 
 ```powershell
 cd frontend
-npm test            # vitest run -> 27 tests, 5 failed (all [KNOWN BUG])
+npm test            # vitest run -> 28 tests, 0 failed
 npm run test:watch  # watch mode
+npx tsc -b          # type-check (clean)
+npm run lint        # eslint (clean)
 ```
 
 Test stack: `vitest` + `jsdom` + Testing Library (`@testing-library/react`,
@@ -17,92 +17,84 @@ Test stack: `vitest` + `jsdom` + Testing Library (`@testing-library/react`,
 `src/test/uncaughtErrors.ts` captures errors React 19 reports asynchronously from event
 handlers; without it a crashing `onChange` can leave a test green.
 
-> `npm run build` and `npm run lint` were already failing before this review and still
-> fail; see §5.
-
 ---
 
-## 1. Open red tests (third pass)
-
-| # | Test | Expects | Today |
-|---|---|---|---|
-| F8 | `App/localDate.test.ts` — "converts a Date using its local calendar day" | a `Date` keeps its **local** day | `parseLocalDate(Date)` uses `toISOString()`, i.e. the UTC day. Near local midnight the calendar opens on the wrong day/month, and `DayPicker`'s `onSelect(Date)` stores the previous day east of UTC. |
-| F9 | `modals/TransactionForm.test.tsx` — "clearing the date does not crash the form" | clearing the date resets it | `onChange` calls `parseLocalDate("")`, which throws `Invalid LocalDate` from inside the handler. |
-| F10 | `TransactionHistory.test.tsx` — "clearing a date filter does not crash the history" | clearing the filter resets it | Same crash; `MonthlyCashFlowChart` has the same pattern. |
-| F11 | `TransactionCalendar.test.tsx` — "asks for a date before listing transactions" | prompt only, no rows | `selectedDate` is `undefined`, so `TransactionList` queries with no bounds and shows the first page of the whole history. |
-| F12 | `auth/authHooks.test.tsx` — "clears cached financial data..." | `["transactions"]` cache is gone after logout | logout only sets `["auth","me"]` to `null`; the previous account's transactions stay cached and are visible to the next account until the refetch completes. |
-
-## 2. First-pass tests (green after `74fdcc3`)
+## 1. Fixed in this pass
 
 | # | Test | Was | Now |
 |---|---|---|---|
-| F1 | `auth/authService.test.ts` — CSRF before register | fresh visitor got 401 | `register()` calls `GET /csrf` first |
-| F2 | `TransactionHistory.test.tsx` — title-only switch | switch did nothing | test commented out — **feature postponed** |
-| F3 | `TransactionList.test.tsx` — page reset on filter change | stayed on page N | `useEffect` resets to page 0 |
-| F4 | `TransactionCalendar.test.tsx` — totals by month and year | Nov 2025 counted in Nov 2026 | also compares `getFullYear()` |
-| F5 | `modals/TransactionForm.test.tsx` — date required | no `required`, silent 400 | date input is `required` |
-| F6 | `MoneyAmount.test.tsx` — zero is neutral | `- R$ 0,00` in red | `>= 0` → `+ R$ 0,00` in `text-success` |
-| F7 | `App/localDate.test.ts` — UTC+ string parsing | every date threw east of UTC | the string form is parsed with `Date.UTC` and round-tripped |
+| F8 | `app/localDate.test.ts` — "converts a Date using its local calendar day" | `parseLocalDate(Date)` used `toISOString()`, i.e. the **UTC** day, so near local midnight the calendar opened on the wrong day/month | `toLocalDateString()` uses the local `getFullYear/getMonth/getDate`; `parseLocalDate(Date)` uses it |
+| F9 | `modals/TransactionForm.test.tsx` — "clearing the date does not crash the form" | `onChange` called `parseLocalDate("")`, which threw `Invalid LocalDate` | empty value resets the state to `null` |
+| F10 | `TransactionHistory.test.tsx` — "clearing a date filter does not crash the history" | same crash on both date filters | empty values reset the filter to `null`; `MonthlyCashFlowChart` guards its two date inputs too |
+| F11 | `TransactionCalendar.test.tsx` — "asks for a date before listing transactions" | with no day selected the list queried with no bounds and showed the first page of the whole history | the list renders only after a day is selected; the prompt is shown otherwise, and **Add transaction** is really `disabled` until then |
+| F12 | `auth/authHooks.test.tsx` — "clears cached financial data..." | logout only set `["auth","me"]` to `null`, leaving the previous account's transactions cached | `queryClient.clear()` drops every cached query on logout |
+| F2 | `TransactionHistory.test.tsx` — "the 'Title only' switch changes what is searched" | `titleOnly` was read by nothing; the test was commented out and the feature postponed | Off sends `search` (title **OR** description); On sends `title` (title only). See §2. |
+
+Additional frontend fixes without a dedicated test:
+
+- `TransactionList` resets to page 0 during render whenever the search text, date range
+  or sort order changes (the old `useEffect` issued one request for the stale page first).
+- Transaction mutations (`create`/`update`/`delete`) close the modal **only on success**,
+  show an inline `alert-danger` on failure, and disable the submit button while pending.
+- `TransactionForm` initialises state from `initialData` directly and the edit modal
+  passes `key={transaction.id}`, so switching rows no longer needs a state-syncing
+  effect (removes the controlled/uncontrolled warning).
+- `RegisterPage` checks the 72-**byte** UTF-8 password limit and shows the backend
+  `detail` message (e.g. "email already registered") instead of a generic failure.
+- `LoginPage` uses the `useLogin` mutation, so the `["auth","me"]` invalidation runs.
+- `CreateTransactionModal`/`DeleteTransactionModal` no longer accept the unused
+  `onCreate`/`onDelete` props (lint errors).
+- `Pagination` boundary buttons are truly `disabled`, have `type="button"` and
+  `aria-label`s, and the active page has `aria-current="page"`.
+- `api.ts` reads `VITE_API_BASE_URL` (localhost fallback) and no longer imports the
+  unrelated `Pagination` component/type.
+- `Transactions.tsx` requests `size: 1000` for the calendar instead of the default 20.
+- The tracked directory was `src/App` while imports used `src/app`; it is now `src/app`
+  everywhere, so the build also works on case-sensitive filesystems.
+
+## 2. "Title only" behavior
+
+The backend now accepts a general `search` query parameter that matches the title **or**
+the description (case-insensitive, LIKE-escaped). The existing `title` and `description`
+parameters remain field-specific and are still combined with AND.
+
+| Switch | Query sent |
+|---|---|
+| Off (default) | `?search=<text>` — title or description |
+| On | `?title=<text>` — title only |
+
+The search box trims to `undefined` when empty, so clearing it removes the filter. Date
+ranges and sorting are sent in both modes. Backend coverage lives in
+`TransactionFilteringTest` (see `BACKEND_REVIEW.md` §6.4).
 
 ## 3. End-to-end (Playwright, real backend + Vite dev server)
 
-The 2026-11-17 Chromium run predates `74fdcc3`. It passed the happy path (login,
+The 2026-11-17 Chromium run predates these fixes. It passed the happy path (login,
 dashboard charts, calendar, create/edit/delete, logout) and failed fresh-visitor
-registration (F1) and date-less creation (F5). Both causes are fixed in code now; re-run
-before releasing. It also observed the controlled/uncontrolled warning described below.
+registration (F1) and date-less creation (F5). Both causes are fixed; re-run the E2E
+suite before releasing.
 
-## 4. Other findings without a failing test
+## 4. Remaining findings without a failing test
 
-- `Transactions.tsx` fetches `useTransactions({})` (default page size **20**) and feeds
-  that page to the calendar footer and day highlights. Monthly totals ignore every
-  transaction after the first 20. The `transactions` prop of `TransactionHistory` is
-  ignored (it fetches its own page), so the parent fetch exists only for the calendar.
-- Dashboard charts request `size: 1000`; accounts with more transactions silently get
-  truncated charts and wrong totals.
-- `DayPicker`'s `onSelect` can pass `undefined` when the selected day is clicked again;
-  `parseLocalDate(undefined)` falls back to *now*, so deselecting actually selects today.
-- `LoginPage` calls `authService.login` directly instead of the `useLogin` mutation, so
-  the `invalidateQueries(["auth","me"])` in `useLogin` is dead code. After a logout
-  (cache set to `null`) a successful login can be bounced back to `/login` by
-  `ProtectedRoute` before the refetch finishes.
-- Mutations (`useCreateTransaction`, `useUpdateTransaction`, `useDeleteTransaction`) use
-  bare `mutate()` and modals close immediately, so **every** API error is silent. The
-  date-less 400 was one instance; server-side validation, 404 on edit/delete and network
-  errors behave the same.
-- `TransactionForm` recomputes initial state in `useEffect` instead of using
-  `key`/initializers; this triggers the controlled/uncontrolled warning and the
-  `react-hooks/set-state-in-effect` lint rule.
-- `RegisterPage` reduces every backend failure to "Registration failed…" (the 409
-  "email already registered" detail is lost) and has no `maxLength` on the password, so
-  a >72-byte password can only be rejected by the server.
-- `CreateTransactionModal` accepts `onCreate` and `DeleteTransactionModal` accepts
-  `onDelete`, but neither is used (lint errors).
-- `Pagination` only adds `.disabled` to boundary buttons; they remain clickable
-  (clamped), but assistive tech sees them as enabled.
-- `api.ts` hardcodes `http://localhost:8080/api`; there is no env-based configuration.
-  It also imports `Pagination` and declares a `Pagination` type in the same module (dead
-  import / confusing name).
-- `main.tsx` imports `./app/App.tsx` although the directory is `src/App`; works on
-  Windows/macOS, fails on case-sensitive filesystems (Linux CI).
-- React-Bootstrap modals have no accessible name (`role="dialog"` without
+- Dashboard charts request `size: 1000`; an account with more than 1000 transactions
+  still gets truncated charts and totals. A dedicated aggregation endpoint would scale.
+- The backend does not set `spring.data.web.pageable.max-page-size` explicitly; the
+  calendar relies on the default cap (2000) while asking for 1000.
+- React-Bootstrap modals still have no accessible name (`role="dialog"` without
   `aria-labelledby`).
 - `MoneyAmount` formats everything as BRL although the API/DB are currency-agnostic.
+- `Transactions` still fetches its own page only for the calendar; the history fetches
+  separately. This is intentional today but means two requests on the same screen.
 
-## 5. Pre-existing build / lint failures
+## 5. Build / lint
 
-`npm run build` (`tsc -b`) still fails with three `noUnusedLocals` errors in
-`TransactionCalendar.tsx`: `nextMonth`, `day`, `modifiers`.
+`npx tsc -b` and `npm run lint` both pass. The previous `noUnusedLocals` errors
+(`nextMonth`, `day`, `modifiers`), the empty props pattern and the
+`react-hooks/set-state-in-effect` errors are gone.
 
-`npm run lint` fails with those three plus the empty props pattern in
-`TransactionHistory` and `react-hooks/set-state-in-effect` in `TransactionForm`.
-`ProtectedRoute`, `App`, the auth pages and the dashboard charts type-check.
+## 6. Suggested next steps
 
-## 6. Suggested fix order
-
-1. F8/F9/F10: make `parseLocalDate` tolerant of `""` at the call sites (or handle empty
-   values there) and derive a `Date`'s day from local getters, not `toISOString`.
-2. F11: skip/disable the calendar list until a day is selected.
-3. F12 + logout→login invalidation: clear or scope query caches per user.
-4. Surface mutation errors instead of closing modals.
-5. The 20-transaction/1000-row caps and the remaining build/lint errors.
-6. Wire `titleOnly` when the postponed feature is picked up (the test is commented out).
+1. Re-run the Playwright E2E suite against the fixed build.
+2. Add a server-side aggregation endpoint for the calendar/dashboard so they do not
+   depend on a fixed page size.
+3. Add `aria-labelledby` to the modals and make the currency configurable.

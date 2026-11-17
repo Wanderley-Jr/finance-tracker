@@ -150,9 +150,11 @@ export default function MonthlyCashFlowChart() {
                             className="form-control"
                             value={startDate}
                             max={endDate}
-                            onChange={(event) =>
-                                setStartDate(parseLocalDate(event.target.value))
-                            }
+                            onChange={(event) => {
+                                if (event.target.value) {
+                                    setStartDate(parseLocalDate(event.target.value));
+                                }
+                            }}
                         />
                     </div>
 
@@ -171,9 +173,11 @@ export default function MonthlyCashFlowChart() {
                             value={endDate}
                             min={startDate}
                             max={defaultEndDate}
-                            onChange={(event) =>
-                                setEndDate(parseLocalDate(event.target.value))
-                            }
+                            onChange={(event) => {
+                                if (event.target.value) {
+                                    setEndDate(parseLocalDate(event.target.value));
+                                }
+                            }}
                         />
                     </div>
                 </div>

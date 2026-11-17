@@ -13,11 +13,10 @@ describe("parseLocalDate", () => {
         expect(() => parseLocalDate("17/11/2026")).toThrow(/Invalid LocalDate/);
     });
 
-    it("[KNOWN BUG] converts a Date using its local calendar day", () => {
-        // parseLocalDate(Date) does value.toISOString().slice(0, 10), i.e. the
-        // *UTC* day. Near local midnight that is a different day: west of UTC
-        // in the evening, east of UTC in the morning. This is how the calendar
-        // month and the dashboard range pick their default day.
+    it("converts a Date using its local calendar day", () => {
+        // Near local midnight the UTC day is different: west of UTC in the
+        // evening, east of UTC in the morning. The calendar month, DayPicker
+        // selections and dashboard ranges all rely on the local day.
         const offsetMinutes = new Date().getTimezoneOffset();
         const [hour, minute] = offsetMinutes > 0 ? [23, 30] : [0, 30];
         const date = new Date(2026, 10, 17, hour, minute);
@@ -27,12 +26,10 @@ describe("parseLocalDate", () => {
         expect(parseLocalDate(date)).toBe(expected);
     });
 
-    it("[KNOWN BUG] works in timezones east of UTC", () => {
-        // parseLocalDate builds a Date at *local* midnight and then compares
+    it("works in timezones east of UTC", () => {
+        // The old implementation built a Date at *local* midnight and compared
         // its UTC ISO string with the input. In Asia/Tokyo (UTC+9) local
-        // midnight is 15:00 UTC of the previous day, so every valid date
-        // throws. This breaks the calendar, the history filters and the
-        // cash-flow chart for users east of UTC.
+        // midnight is 15:00 UTC of the previous day, so every valid date threw.
         try {
             vi.stubEnv("TZ", "Asia/Tokyo");
 

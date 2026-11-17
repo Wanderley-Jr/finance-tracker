@@ -54,11 +54,10 @@ describe("TransactionList pagination", () => {
         expect(lastQueryParams()).toMatchObject({ page: 2, title: "a" });
     });
 
-    it("[KNOWN BUG] resets to the first page when the filters change", async () => {
-        // pageIndex is internal and is not reset by TransactionHistory when the
-        // search text, date range or sort order changes. After browsing to page
-        // 3 and filtering down to one page of results, the list requests page 3
-        // of 1 and appears empty until the page is reloaded.
+    it("resets to the first page when the filters change", async () => {
+        // pageIndex is internal, so TransactionList derives it during render
+        // whenever the search text, date range or sort order changes. Browsing
+        // to page 3 and then filtering must not request page 3 of 1.
         const user = userEvent.setup();
 
         const { rerender } = render(

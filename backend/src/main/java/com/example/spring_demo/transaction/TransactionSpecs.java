@@ -13,10 +13,12 @@ public final class TransactionSpecs {
             LocalDate startDate,
             LocalDate endDate,
             String titleQuery,
-            String descriptionQuery
+            String descriptionQuery,
+            String searchQuery
     ) {
         String title = EscapeCharacter.DEFAULT.escape(titleQuery);
         String description = EscapeCharacter.DEFAULT.escape(descriptionQuery);
+        String search = EscapeCharacter.DEFAULT.escape(searchQuery);
 
         Specification<Transaction> specification =
                 (root, query, criteriaBuilder) ->
@@ -50,6 +52,27 @@ public final class TransactionSpecs {
                         criteriaBuilder.lower(root.get("description")),
                         "%" + description.toLowerCase(Locale.ROOT) + "%",
                         EscapeCharacter.DEFAULT.getEscapeCharacter()
+                )
+            );
+        }
+
+        // A general search matches either field, unlike the field-specific
+        // title/description filters above, which are combined with AND.
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.toLowerCase(Locale.ROOT) + "%";
+
+            specification = specification.and((root, query, criteriaBuilder) ->
+                criteriaBuilder.or(
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("title")),
+                                pattern,
+                                EscapeCharacter.DEFAULT.getEscapeCharacter()
+                        ),
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(root.get("description")),
+                                pattern,
+                                EscapeCharacter.DEFAULT.getEscapeCharacter()
+                        )
                 )
             );
         }

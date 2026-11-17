@@ -18,13 +18,6 @@ function toMonth(dateStr: LocalDate): LocalDate {
     return parseLocalDate(date)
 }
 
-function nextMonth(dateStr: LocalDate): LocalDate {
-    const date = toDate(dateStr)
-    date.setDate(1)
-    date.setMonth(date.getMonth() + 1)
-    return parseLocalDate(date)
-}
-
 export default function TransactionCalendarWidget({ transactions }: TransactionCalendarWidgetProps) {
     const [showModal, setShowModal] = useState(false)
     const [selectedDate, setSelected] = useState<LocalDate>()
@@ -62,8 +55,9 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
                         </h5>
 
                         <button
-                            className={`col-auto btn btn-success ${selectedDate ? "" : "disabled"}`}
+                            className="col-auto btn btn-success"
                             onClick={handleOpen}
+                            disabled={!selectedDate}
                         >
                             <i className="bi bi-plus-lg me-2"></i>
                             Add transaction
@@ -78,21 +72,25 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
                                 animate
                                 mode="single"
                                 selected={selectedDate ? toDate(selectedDate) : undefined}
-                                onSelect={(date) => setSelected(parseLocalDate(date))}
+                                onSelect={(date) => {
+                                    setSelected(date ? parseLocalDate(date) : undefined);
+                                    setPreviewedTransaction(null);
+                                }}
                                 onMonthChange={(month) => setSelectedMonth(parseLocalDate(month))}
                                 modifiers={{
-                                    hasTransactionsGreen: [transactions.filter(it => it.amount > 0).map(it => toDate(it.date))],
-                                    hasTransactionsRed: [transactions.filter(it => it.amount < 0).map(it => toDate(it.date))]
+                                    hasTransactionsGreen: transactions.filter(it => it.amount > 0).map(it => toDate(it.date)),
+                                    hasTransactionsRed: transactions.filter(it => it.amount < 0).map(it => toDate(it.date))
                                 }}
                                 modifiersClassNames={{
                                     hasTransactionsGreen: "bg-success bg-opacity-50 rounded-circle",
                                     hasTransactionsRed: "bg-danger bg-opacity-50 rounded-circle",
                                 }}
-                                onDayKeyDown={(day, modifiers, event) => {
+                                onDayKeyDown={(day, _modifiers, event) => {
                                     if (event.key === "Enter") {
                                         event.preventDefault();
                                         event.stopPropagation();
 
+                                        setSelected(parseLocalDate(day));
                                         handleOpen()
                                     }
                                 }}
@@ -100,17 +98,21 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
                         </div>
 
                         <div className="col">
-                            <TransactionList
-                                queryParams={{ startDate: selectedDate, endDate: selectedDate, size: 5 }}
-                                emptyNode={
-                                    <span className="text-secondary">
-                                        {selectedDate
-                                            ? "No transactions for selected date"
-                                            : "Select a date to view transactions made"}
-                                    </span>
-                                }
-                                onTransactionPreview={setPreviewedTransaction}
-                            />
+                            {selectedDate ? (
+                                <TransactionList
+                                    queryParams={{ startDate: selectedDate, endDate: selectedDate, size: 5 }}
+                                    emptyNode={
+                                        <span className="text-secondary">
+                                            No transactions for selected date
+                                        </span>
+                                    }
+                                    onTransactionPreview={setPreviewedTransaction}
+                                />
+                            ) : (
+                                <span className="text-secondary">
+                                    Select a date to view transactions made
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>

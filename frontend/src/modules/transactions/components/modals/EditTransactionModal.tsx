@@ -11,8 +11,9 @@ export default function EditTransactionModal({ transaction, ...props }: EditTran
     const updateTransaction = useUpdateTransaction()
 
     const handleSubmit = (transaction: Transaction) => {
-        updateTransaction.mutate(transaction)
-        props.onHide?.();
+        updateTransaction.mutate(transaction, {
+            onSuccess: () => props.onHide?.(),
+        })
     };
 
     return (
@@ -22,11 +23,27 @@ export default function EditTransactionModal({ transaction, ...props }: EditTran
             </Modal.Header>
 
             <Modal.Body>
-                <TransactionForm id={`edit-transaction-form-${transaction.id!}`} initialData={transaction} onSubmit={handleSubmit} />
+                {updateTransaction.isError && (
+                    <div className="alert alert-danger" role="alert">
+                        Could not save the transaction. Please try again.
+                    </div>
+                )}
+
+                <TransactionForm
+                    key={transaction.id}
+                    id={`edit-transaction-form-${transaction.id!}`}
+                    initialData={transaction}
+                    onSubmit={handleSubmit}
+                />
             </Modal.Body>
 
             <Modal.Footer>
-                <button type="submit" form={`edit-transaction-form-${transaction.id!}`} className="col-auto btn btn-primary">
+                <button
+                    type="submit"
+                    form={`edit-transaction-form-${transaction.id!}`}
+                    className="col-auto btn btn-primary"
+                    disabled={updateTransaction.isPending}
+                >
                     <i className="bi bi-pencil me-2"></i>
                     Edit transaction
                 </button>

@@ -35,9 +35,12 @@ public class TransactionController {
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) String description
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String search
     ) {
-        Specification<Transaction> specification = TransactionSpecs.withFilters(startDate, endDate, title, description);
+        Specification<Transaction> specification = TransactionSpecs.withFilters(
+                startDate, endDate, title, description, search
+        );
         return service.getTransactions(specification, pageable);
     }
 

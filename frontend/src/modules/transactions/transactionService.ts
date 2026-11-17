@@ -14,6 +14,8 @@ export type TransactionQueryParams = Pagination<Transaction> & {
     endDate?: LocalDate
     title?: string
     description?: string
+    /** Matches either the title or the description. */
+    search?: string
 }
 
 export async function createTransaction(transaction: Transaction) {

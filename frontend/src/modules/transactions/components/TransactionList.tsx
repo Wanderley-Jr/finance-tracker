@@ -27,14 +27,22 @@ export default function TransactionList({
     const [tableRows, setTableRows] = useState<number>(10);
     const { data, error } = useTransactions({ page: pageIndex, size: tableRows, ...queryParams })
 
-    useEffect(() => {
-        setPageIndex(0);
-    }, [
+    // Reset during render instead of in an effect: a filter change must not
+    // issue one request for the old page before the effect runs.
+    const filterSignature = JSON.stringify([
         queryParams.title,
+        queryParams.search,
         queryParams.startDate,
         queryParams.endDate,
-        queryParams.sort
+        queryParams.sort,
     ]);
+    const [previousFilterSignature, setPreviousFilterSignature] =
+        useState(filterSignature);
+
+    if (filterSignature !== previousFilterSignature) {
+        setPreviousFilterSignature(filterSignature);
+        setPageIndex(0);
+    }
 
     return (
         <div {...props}>

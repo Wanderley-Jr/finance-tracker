@@ -1,30 +1,27 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { login } from "./authService";
+import { useLogin } from "./authHooks";
 
 export default function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
+    const loginMutation = useLogin();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const from = location.state?.from?.pathname ?? "/";
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError(null);
-        setIsSubmitting(true);
 
         try {
-            await login({ email, password });
+            await loginMutation.mutateAsync({ email, password });
             navigate(from, { replace: true });
         } catch {
             setError("Invalid email or password.");
-        } finally {
-            setIsSubmitting(false);
         }
     }
 
@@ -81,9 +78,9 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             className="btn btn-success btn-lg w-100"
-                            disabled={isSubmitting}
+                            disabled={loginMutation.isPending}
                         >
-                            {isSubmitting ? "Signing in..." : "Sign in"}
+                            {loginMutation.isPending ? "Signing in..." : "Sign in"}
                         </button>
                     </form>
 

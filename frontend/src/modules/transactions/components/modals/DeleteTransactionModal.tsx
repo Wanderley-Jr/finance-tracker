@@ -4,15 +4,15 @@ import { useDeleteTransaction } from "../../transactionHooks";
 
 interface DeleteTransactionModalProps extends ModalProps {
     transaction: Transaction
-    onDelete?: () => void
 }
 
-export default function DeleteTransactionModal({ transaction, onDelete, ...props }: DeleteTransactionModalProps) {
+export default function DeleteTransactionModal({ transaction, ...props }: DeleteTransactionModalProps) {
     const deleteTransaction = useDeleteTransaction()
 
     const onClick = () => {
-        deleteTransaction.mutate(transaction)
-        props.onHide?.();
+        deleteTransaction.mutate(transaction, {
+            onSuccess: () => props.onHide?.(),
+        })
     }
 
     return (
@@ -22,11 +22,21 @@ export default function DeleteTransactionModal({ transaction, onDelete, ...props
             </Modal.Header>
 
             <Modal.Body>
+                {deleteTransaction.isError && (
+                    <div className="alert alert-danger" role="alert">
+                        Could not delete the transaction. Please try again.
+                    </div>
+                )}
+
                 Are you sure you want to delete this transaction?
             </Modal.Body>
 
             <Modal.Footer>
-                <button onClick={() => onClick()} className="col-auto btn btn-danger">
+                <button
+                    onClick={onClick}
+                    className="col-auto btn btn-danger"
+                    disabled={deleteTransaction.isPending}
+                >
                     <i className="bi bi-trash me-2"></i>
                     Delete Transaction
                 </button>

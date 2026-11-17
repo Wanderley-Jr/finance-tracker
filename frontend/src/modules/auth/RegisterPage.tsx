@@ -1,5 +1,5 @@
 
-import { useState, type ChangeEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
     Alert,
@@ -15,6 +15,21 @@ interface RegisterForm {
     email: string;
     password: string;
     confirmPassword: string;
+}
+
+function registrationErrorMessage(error: unknown) {
+    if (typeof error === "object" && error !== null && "response" in error) {
+        const response = (error as {
+            response?: { data?: { detail?: unknown } };
+        }).response;
+        const detail = response?.data?.detail;
+
+        if (typeof detail === "string" && detail.trim() !== "") {
+            return detail;
+        }
+    }
+
+    return "Registration failed. Please check your details and try again.";
 }
 
 export default function RegisterPage() {
@@ -36,7 +51,7 @@ export default function RegisterPage() {
         }));
     }
 
-    async function handleSubmit(event: ChangeEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setValidationError(null);
 
@@ -47,6 +62,11 @@ export default function RegisterPage() {
 
         if (form.password.length < 8) {
             setValidationError("Password must contain at least 8 characters.");
+            return;
+        }
+
+        if (new TextEncoder().encode(form.password).length > 72) {
+            setValidationError("Password must be at most 72 bytes.");
             return;
         }
 
@@ -64,9 +84,7 @@ export default function RegisterPage() {
 
     const errorMessage =
         validationError ??
-        (register.isError
-            ? "Registration failed. Please check your details and try again."
-            : null);
+        (register.isError ? registrationErrorMessage(register.error) : null);
 
     return (
         <Card className="border-0 shadow-sm">

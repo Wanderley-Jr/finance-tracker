@@ -111,4 +111,28 @@ class TransactionFilteringTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].title").value("a_b"));
     }
+
+    @Test
+    void searchMatchesTitleOrDescriptionCaseInsensitively() throws Exception {
+        saveTransaction("Groceries", "weekly shopping", LocalDate.of(2026, 1, 1));
+        saveTransaction("Salary", "grocery store reimbursement", LocalDate.of(2026, 1, 2));
+        saveTransaction("Rent", "monthly payment", LocalDate.of(2026, 1, 3));
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("search", "GROC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void percentInSearchIsNotTreatedAsWildcard() throws Exception {
+        saveTransaction("100% bonus", "paid", LocalDate.of(2026, 1, 1));
+        saveTransaction("1000 salary", "commission", LocalDate.of(2026, 1, 2));
+
+        mockMvc.perform(get("/api/transactions")
+                        .param("search", "100%"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].title").value("100% bonus"));
+    }
 }
