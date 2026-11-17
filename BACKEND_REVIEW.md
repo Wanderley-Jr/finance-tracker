@@ -1,5 +1,27 @@
 # Backend review — spring-demo
 
+Status as of 2026-11-17 (after commit `8e84059`): **45 original tests, all green**, plus
+**8 tests** in `review/KnownBackendIssuesTest` covering issues found in a second review
+pass: **4 green** (the 30/300 payload limits are now fixed), **4 red** (remaining
+issues). The original 15 failures were fixed; those tests were not weakened and still
+pass.
+
+Run everything:
+
+```powershell
+$env:JAVA_HOME="C:\Users\wanderleyatj\.jdks\temurin-25.0.3"
+cd backend
+.\gradlew test
+# 53 tests completed, 4 failed (all in review.KnownBackendIssuesTest)
+.\gradlew test --tests "com.example.spring_demo.review.KnownBackendIssuesTest"
+```
+
+The 4 red tests are intentional reproductions; no production code was changed for them.
+See §6 for what they pin down.
+
+> Historical context below (§1–§5) documents the first review pass, when the suite was
+> `45 tests, 15 red`. It is kept for reference.
+
 Status as of 2026-10-28: **45 tests, 15 red, 30 green.**
 
 The 15 failures are intentional reproductions of existing bugs. No production code
@@ -259,3 +281,50 @@ than fixed in `src/main`.
 6. **Sort allow-list** (`@PageableDefault` + validated sort fields) — clears 1.
 7. Then re-green the suite, add the §4.1 missing coverage, and only afterwards
    tackle §4.3/§4.4.
+
+---
+
+## 6. Second review pass — 2026-11-17
+
+All 15 bugs from §2 are fixed and their tests are green. A re-read of `src/main`,
+plus an end-to-end browser run against the real backend, found eight more issues.
+They are reproduced by `review/KnownBackendIssuesTest`. The payload limits were fixed
+after the review (title ≤ 30, description ≤ 300); the other four remain red.
+
+| # | Test | Expects | Today | Status / root cause |
+|---|---|---|---|---|
+| N1 | `TransactionPayloadLimits.titleLongerThanTheLimitIsRejectedAsBadRequest` (+ `titleAtTheLimitIsAccepted`) | 31 chars → 400, 30 chars → 201 | ✅ green | Fixed by `@Length(min = 3, max = 30)` and `@Column(length = 30)`. |
+| N2 | `TransactionPayloadLimits.descriptionLongerThanTheLimitIsRejectedAsBadRequest` (+ `descriptionAtTheLimitIsAccepted`) | 301 chars → 400, 300 chars → 201 | ✅ green | Fixed by `@Length(max = 300)` and `@Column(length = 300)` (was `varchar(255)`). |
+| N3 | `PasswordValidation.multibytePasswordLongerThan72BytesIsRejectedAsBadRequest` | 400 | **500** `IllegalArgumentException: password cannot be more than 72 bytes` | `@Size(max = 72)` counts chars; BCrypt limits bytes. 24 emoji = 48 chars / 96 bytes. |
+| N4 | `unknownPrincipalReturnsNotFound` | 404 | **500** `UserNotFoundException` | `GlobalExceptionHandler` handles the other three domain exceptions but not `UserNotFoundException` (`/api/auth/me` with a stale principal). |
+| N5 | `titleSearchIsNotLocaleSensitive` | 1 row | **0 rows** | `TransactionSpecs` uses default-locale `toLowerCase()`; Turkish lowercases `I` to `ı`. |
+| N6 | `descriptionSearchIsNotLocaleSensitive` | 1 row | **0 rows** | Same as N5 for the description filter. |
+
+Suggested fixes (in order): add a `@Size` that counts UTF-8 bytes or move to Argon2,
+map `UserNotFoundException` to 404, and use `toLowerCase(Locale.ROOT)` in
+`TransactionSpecs` (the Java-side and `lower()` in PostgreSQL must agree).
+
+### Findings without a failing test
+
+- `TransactionController` still injects `TransactionService` twice (`service` and
+  `transactionService`); unused imports remain in `AuthController`,
+  `SpringDemoApplication`, `AuthService` (`@Valid`).
+- `AuthService.isEmailUniqueConstraintViolation` still ships three `System.out.println`
+  debug statements, including printing exception details on every duplicate insert.
+- `@Digits` rejects `10.500` with 400 because the validator counts the literal scale.
+  The UI always sends `toFixed(2)`, but API clients that send trailing zeros get an
+  avoidable 400.
+- `Page<TransactionResponse>` is still serialized as `PageImpl`; the application logs the
+  Spring Data warning (`PageModule$WarningLoggingModifier`) on every paged request.
+  Use `PagedModel`/`pageSerializationMode = VIA_DTO`.
+- Registration with a 72+ byte password is a 500 (N3); with a 73+ *character* ASCII
+  password it is a 400 from `@Size`. The two limits are inconsistent.
+- `/api/auth/me` is the only caller of `AuthService.getCurrentUser`; a deleted user keeps
+  a valid session until the next request, which then 500s (N4).
+- `ddl-auto=update`, hardcoded DB credentials, local-only `server.address`, single-origin
+  CORS and no migrations remain as in §4.3.
+- No `@Version`/audit columns: concurrent updates are last-write-wins.
+- The negative-amount representation is intentional (income > 0, expenses < 0), but the
+  backend does not document or validate it; `amount = 0` is accepted and is shown as a
+  red `- R$ 0,00` by the frontend.
+

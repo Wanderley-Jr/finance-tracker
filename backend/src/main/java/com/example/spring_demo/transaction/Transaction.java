@@ -29,9 +29,10 @@ public class Transaction {
     private LocalDate date;
 
     @NotBlank
-    @Column(nullable = false)
+    @Column(length = 30, nullable = false)
     private String title;
 
+    @Column(length = 300)
     private String description = "";
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

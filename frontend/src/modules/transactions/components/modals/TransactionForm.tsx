@@ -63,6 +63,7 @@ export default function TransactionForm({ initialData, onSubmit, overrideDate, .
                         </label>
 
                         <input
+                            required
                             type="date"
                             className="form-control"
                             id="date"

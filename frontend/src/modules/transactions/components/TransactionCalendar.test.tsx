@@ -1,0 +1,90 @@
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Page } from "../../../app/api";
+import { parseLocalDate } from "../../../app/localDate";
+import { useTransactions } from "../transactionHooks";
+import type { Transaction } from "../transactionService";
+import TransactionCalendar from "./TransactionCalendar";
+
+vi.mock("../transactionHooks", () => ({
+    useTransactions: vi.fn(),
+    useCreateTransaction: () => ({ mutate: vi.fn(), isPending: false }),
+    useUpdateTransaction: () => ({ mutate: vi.fn(), isPending: false }),
+    useDeleteTransaction: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+const mockedUseTransactions = vi.mocked(useTransactions);
+
+const emptyPage: Page<Transaction> = {
+    content: [],
+    totalElements: 0,
+    totalPages: 0,
+    size: 10,
+    number: 0,
+    first: true,
+    last: true,
+};
+
+function transaction(id: number, amount: number, date: string): Transaction {
+    return {
+        id,
+        amount,
+        date: parseLocalDate(date),
+        title: `Transaction ${id}`,
+        description: "",
+    };
+}
+
+function footerValue(label: "Income" | "Expenses" | "Balance") {
+    return screen.getByText(label).parentElement?.textContent ?? "";
+}
+
+beforeEach(() => {
+    mockedUseTransactions.mockReturnValue({
+        data: emptyPage,
+        error: null,
+    } as unknown as ReturnType<typeof useTransactions>);
+});
+
+describe("TransactionCalendar footer totals", () => {
+    it("separates income from expenses for the selected month", () => {
+        const today = new Date();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const date = `${today.getFullYear()}-${month}-15`;
+
+        render(
+            <TransactionCalendar
+                transactions={[
+                    transaction(1, 100, date),
+                    transaction(2, -30, date),
+                ]}
+            />
+        );
+
+        expect(footerValue("Income")).toContain("100,00");
+        expect(footerValue("Expenses")).toContain("30,00");
+        expect(footerValue("Balance")).toContain("70,00");
+    });
+
+    it("[KNOWN BUG] only counts transactions from the selected month of the selected year", () => {
+        // monthlyTransactions compares `getMonth()` only. A transaction from
+        // November 2025 is added to the November 2026 footer totals.
+        const today = new Date();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const thisYear = `${today.getFullYear()}-${month}-15`;
+        const lastYear = `${today.getFullYear() - 1}-${month}-15`;
+
+        render(
+            <TransactionCalendar
+                transactions={[
+                    transaction(1, 100, thisYear),
+                    transaction(2, 50, lastYear),
+                ]}
+            />
+        );
+
+        expect(footerValue("Income")).toContain("100,00");
+        expect(footerValue("Income")).not.toContain("150,00");
+    });
+});

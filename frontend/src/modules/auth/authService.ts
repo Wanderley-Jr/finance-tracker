@@ -11,6 +11,8 @@ export type Credentials = {
 }
 
 export async function register(credentials: Credentials): Promise<void> {
+    await api.get("/csrf");
+    
     await api.post("/auth/register", credentials);
 }
 

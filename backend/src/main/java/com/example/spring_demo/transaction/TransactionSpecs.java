@@ -4,6 +4,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.query.EscapeCharacter;
 
 import java.time.LocalDate;
+import java.util.Locale;
 
 public final class TransactionSpecs {
     private TransactionSpecs() {}
@@ -37,7 +38,7 @@ public final class TransactionSpecs {
             specification = specification.and((root, query, criteriaBuilder) ->
                 criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("title")),
-                        "%" + title.toLowerCase() + "%",
+                        "%" + title.toLowerCase(Locale.ROOT) + "%",
                         EscapeCharacter.DEFAULT.getEscapeCharacter()
                 )
             );
@@ -47,7 +48,7 @@ public final class TransactionSpecs {
             specification = specification.and((root, query, criteriaBuilder) ->
                 criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("description")),
-                        "%" + description.toLowerCase() + "%",
+                        "%" + description.toLowerCase(Locale.ROOT) + "%",
                         EscapeCharacter.DEFAULT.getEscapeCharacter()
                 )
             );

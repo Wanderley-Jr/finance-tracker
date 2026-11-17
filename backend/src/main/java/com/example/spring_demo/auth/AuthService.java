@@ -3,16 +3,17 @@ package com.example.spring_demo.auth;
 import com.example.spring_demo.auth.dto.RegisterRequest;
 import com.example.spring_demo.auth.dto.UserResponse;
 import com.example.spring_demo.exception.EmailAlreadyRegisteredException;
+import com.example.spring_demo.exception.InvalidPasswordException;
 import com.example.spring_demo.exception.UserNotFoundException;
 import com.example.spring_demo.user.User;
 import com.example.spring_demo.user.UserRepository;
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Service
@@ -41,6 +42,10 @@ public class AuthService {
             throw new EmailAlreadyRegisteredException();
         }
 
+        if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new InvalidPasswordException(request.password());
+        }
+
         User user = new User(
                 email,
                 passwordEncoder.encode(request.password())
@@ -57,22 +62,14 @@ public class AuthService {
     }
 
     private boolean isEmailUniqueConstraintViolation(DataIntegrityViolationException ex) {
-        Throwable cause = ex;
-
-        System.out.println(cause);
-
+        Throwable cause = ex.getCause();
         while (cause != null) {
-            System.out.println("Exception: " + cause.getClass().getName());
-
             if (cause instanceof ConstraintViolationException cve) {
-                System.out.println("Constraint name: " + cve.getConstraintName());
-
                 return "uk_users_email".equals(cve.getConstraintName());
             }
 
             cause = cause.getCause();
         }
-
         return false;
     }
 }

@@ -27,6 +27,15 @@ export default function TransactionList({
     const [tableRows, setTableRows] = useState<number>(10);
     const { data, error } = useTransactions({ page: pageIndex, size: tableRows, ...queryParams })
 
+    useEffect(() => {
+        setPageIndex(0);
+    }, [
+        queryParams.title,
+        queryParams.startDate,
+        queryParams.endDate,
+        queryParams.sort
+    ]);
+
     return (
         <div {...props}>
             <table className="table h-auto mb-0">

@@ -31,7 +31,18 @@ export default function TransactionCalendarWidget({ transactions }: TransactionC
     const [selectedMonth, setSelectedMonth] = useState<LocalDate>(toMonth(parseLocalDate()))
     const [peekedTransaction, setPreviewedTransaction] = useState<Transaction | null>(null)
 
-    const monthlyTransactions = transactions.filter(it => toDate(it.date).getMonth() === toDate(selectedMonth).getMonth()).map(it => it.amount)
+    const monthlyTransactions = transactions
+        .filter(it => {
+            const date = toDate(it.date);
+            const selected = toDate(selectedMonth)
+
+            return (
+                date.getMonth() === selected.getMonth() &&
+                date.getFullYear() === selected.getFullYear()
+            );
+        })
+        .map(it => it.amount);
+
     const income = monthlyTransactions.filter(it => it > 0).reduce((prev, cur) => prev + cur, 0)
     const expenses = monthlyTransactions.filter(it => it < 0).reduce((prev, cur) => prev + cur, 0)
 
