@@ -69,10 +69,24 @@ ranges and sorting are sent in both modes. Backend coverage lives in
 
 ## 3. End-to-end (Playwright, real backend + Vite dev server)
 
-The 2026-11-17 Chromium run predates these fixes. It passed the happy path (login,
-dashboard charts, calendar, create/edit/delete, logout) and failed fresh-visitor
-registration (F1) and date-less creation (F5). Both causes are fixed; re-run the E2E
-suite before releasing.
+The suite was re-run on 2026-11-17 against the fixed build: **10/10 steps passed**.
+
+| Step | Result |
+|---|---|
+| Fresh visitor registers with no prior CSRF cookie | PASS |
+| Register with a CSRF cookie | PASS |
+| Login lands on the dashboard with all charts | PASS |
+| Calendar renders selectable days | PASS |
+| Create transaction from the calendar | PASS |
+| Edit transaction | PASS |
+| "Title only" off matches the description, on matches title only | PASS |
+| Add transaction is disabled until a date is selected (no dialog opens) | PASS |
+| Delete transaction | PASS |
+| Logout protects the app again | PASS |
+
+The only console entry is the expected `401 GET /api/auth/me` while logged out. The
+smoke script is ad-hoc and currently lives outside the repository; committing it would
+make the E2E check repeatable in CI.
 
 ## 4. Remaining findings without a failing test
 
@@ -94,7 +108,7 @@ suite before releasing.
 
 ## 6. Suggested next steps
 
-1. Re-run the Playwright E2E suite against the fixed build.
+1. Commit the Playwright smoke script and run it in CI alongside the unit tests.
 2. Add a server-side aggregation endpoint for the calendar/dashboard so they do not
    depend on a fixed page size.
 3. Add `aria-labelledby` to the modals and make the currency configurable.
