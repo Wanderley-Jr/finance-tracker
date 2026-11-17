@@ -1,6 +1,7 @@
 package com.example.spring_demo.transaction;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.query.EscapeCharacter;
 
 import java.time.LocalDate;
 
@@ -13,6 +14,9 @@ public final class TransactionSpecs {
             String titleQuery,
             String descriptionQuery
     ) {
+        String title = EscapeCharacter.DEFAULT.escape(titleQuery);
+        String description = EscapeCharacter.DEFAULT.escape(descriptionQuery);
+
         Specification<Transaction> specification =
                 (root, query, criteriaBuilder) ->
                         criteriaBuilder.conjunction();
@@ -29,20 +33,22 @@ public final class TransactionSpecs {
             );
         }
 
-        if (titleQuery != null && !titleQuery.isBlank()) {
+        if (title != null && !title.isBlank()) {
             specification = specification.and((root, query, criteriaBuilder) ->
                 criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("title")),
-                        "%" + titleQuery.toLowerCase() + "%"
+                        "%" + title.toLowerCase() + "%",
+                        EscapeCharacter.DEFAULT.getEscapeCharacter()
                 )
             );
         }
 
-        if (descriptionQuery != null && !descriptionQuery.isBlank()) {
+        if (description != null && !description.isBlank()) {
             specification = specification.and((root, query, criteriaBuilder) ->
                 criteriaBuilder.like(
                         criteriaBuilder.lower(root.get("description")),
-                        "%" + descriptionQuery.toLowerCase() + "%"
+                        "%" + description.toLowerCase() + "%",
+                        EscapeCharacter.DEFAULT.getEscapeCharacter()
                 )
             );
         }

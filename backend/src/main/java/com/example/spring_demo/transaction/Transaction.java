@@ -32,8 +32,6 @@ public class Transaction {
     @Column(nullable = false)
     private String title;
 
-    @NotNull
-    @Column(nullable = false)
     private String description = "";
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

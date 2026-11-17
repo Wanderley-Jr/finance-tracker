@@ -1,5 +1,6 @@
 package com.example.spring_demo.transaction;
 
+import com.example.spring_demo.exception.InvalidSortFieldException;
 import com.example.spring_demo.exception.TransactionNotFoundException;
 import com.example.spring_demo.transaction.dto.TransactionRequest;
 import com.example.spring_demo.transaction.dto.TransactionResponse;
@@ -12,15 +13,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class TransactionService {
-    private final TransactionRepository repository;;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "date",
+            "amount",
+            "title",
+            "description"
+    );
+
+    private final TransactionRepository repository;
     private final CurrentUserService currentUserService;
 
     public TransactionService(TransactionRepository repository, CurrentUserService currentUserService) {
         this.repository = repository;
         this.currentUserService = currentUserService;
+    }
+
+    private void validateSort(Pageable pageable) {
+        pageable.getSort().forEach(order -> {
+            if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new InvalidSortFieldException(order.getProperty());
+            }
+        });
     }
 
     @Transactional
@@ -31,7 +48,7 @@ public class TransactionService {
         transaction.setAmount(request.amount());
         transaction.setDate(request.date());
         transaction.setTitle(request.title());
-        transaction.setDescription(request.description());
+        transaction.setDescription(request.description() != null ? request.description() : "");
         transaction.setUser(user);
 
         return TransactionResponse.from(repository.save(transaction));
@@ -40,6 +57,7 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(Specification<Transaction> specification, Pageable pageable) {
         User user = currentUserService.getCurrentUser();
+        validateSort(pageable);
 
         Specification<Transaction> userSpecification = (root, query, criteriaBuilder) ->
                 criteriaBuilder.equal(
@@ -69,7 +87,7 @@ public class TransactionService {
         existing.setAmount(transaction.amount());
         existing.setTitle(transaction.title());
         existing.setDate(transaction.date());
-        existing.setDescription(transaction.description());
+        existing.setDescription(transaction.description() != null ? transaction.description() : "");
 
         return TransactionResponse.from(repository.save(existing));
     }
@@ -77,6 +95,8 @@ public class TransactionService {
     @Transactional
     public void delete(Long id) {
         User user = currentUserService.getCurrentUser();
+        repository.findByIdAndUserId(id, user.getId())
+                .orElseThrow(() -> new TransactionNotFoundException(id));
         repository.deleteByIdAndUserId(id, user.getId());
     }
 }

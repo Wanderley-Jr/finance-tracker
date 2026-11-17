@@ -4,6 +4,7 @@ import com.example.spring_demo.auth.dto.RegisterRequest;
 import com.example.spring_demo.exception.EmailAlreadyRegisteredException;
 import com.example.spring_demo.user.User;
 import com.example.spring_demo.user.UserRepository;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -47,7 +48,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 
-        verify(userRepository).save(captor.capture());
+        verify(userRepository).saveAndFlush(captor.capture());
 
         assertThat(captor.getValue().getPassword()).isEqualTo("bcrypt-hash");
     }
@@ -60,7 +61,7 @@ class AuthServiceTest {
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
 
-        verify(userRepository).save(captor.capture());
+        verify(userRepository).saveAndFlush(captor.capture());
 
         assertThat(captor.getValue().getEmail())
                 .isEqualTo("test@example.com");
@@ -71,9 +72,21 @@ class AuthServiceTest {
         when(userRepository.existsByEmailIgnoreCase("race@example.com"))
                 .thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("bcrypt-hash");
-        doThrow(new DataIntegrityViolationException("duplicate key value"))
+
+        var hibernateException = new ConstraintViolationException(
+                "duplicate key",
+                null,
+                "uk_users_email"
+        );
+
+        var databaseException = new DataIntegrityViolationException(
+                "duplicate key value",
+                hibernateException
+        );
+
+        doThrow(databaseException)
                 .when(userRepository)
-                .save(any(User.class));
+                .saveAndFlush(any(User.class));
 
         assertThatThrownBy(() -> authService.register(
                 new RegisterRequest("race@example.com", "Password123!")

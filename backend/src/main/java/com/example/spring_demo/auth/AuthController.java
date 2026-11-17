@@ -15,11 +15,9 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
-    private final UserRepository userRepository;
 
-    public AuthController(AuthService authService, UserRepository userRepository) {
+    public AuthController(AuthService authService) {
         this.authService = authService;
-        this.userRepository = userRepository;
     }
 
     @PostMapping("/register")
@@ -30,9 +28,6 @@ public class AuthController {
 
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal UserDetails principal) {
-        User user = userRepository.findByEmailIgnoreCase(principal.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-        return new UserResponse(user.getId(), user.getEmail());
+        return authService.getCurrentUser(principal.getUsername());
     }
 }
