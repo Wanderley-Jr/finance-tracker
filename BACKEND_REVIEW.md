@@ -1,10 +1,10 @@
 # Backend review — spring-demo
 
-Status as of 2026-11-17 (after commit `8e84059`): **45 original tests, all green**, plus
-**8 tests** in `review/KnownBackendIssuesTest` covering issues found in a second review
-pass: **4 green** (the 30/300 payload limits are now fixed), **4 red** (remaining
-issues). The original 15 failures were fixed; those tests were not weakened and still
-pass.
+Status as of 2026-11-17 (after commit `74fdcc3`): **54 tests, all green**. The original
+45 tests and the second-pass payload/validation/exception/locale tests pass. A
+third-pass test found that the over-long-password error echoed the plaintext password;
+the production fix was applied in the working tree while the test was being written, so
+the suite is green again.
 
 Run everything:
 
@@ -12,12 +12,11 @@ Run everything:
 $env:JAVA_HOME="C:\Users\wanderleyatj\.jdks\temurin-25.0.3"
 cd backend
 .\gradlew test
-# 53 tests completed, 4 failed (all in review.KnownBackendIssuesTest)
+# 54 tests completed, 0 failed
 .\gradlew test --tests "com.example.spring_demo.review.KnownBackendIssuesTest"
 ```
 
-The 4 red tests are intentional reproductions; no production code was changed for them.
-See §6 for what they pin down.
+See §6 for the third-pass finding and the list of issues that were fixed.
 
 > Historical context below (§1–§5) documents the first review pass, when the suite was
 > `45 tests, 15 red`. It is kept for reference.
@@ -284,47 +283,58 @@ than fixed in `src/main`.
 
 ---
 
-## 6. Second review pass — 2026-11-17
+## 6. Second and third review passes — 2026-11-17
 
-All 15 bugs from §2 are fixed and their tests are green. A re-read of `src/main`,
-plus an end-to-end browser run against the real backend, found eight more issues.
-They are reproduced by `review/KnownBackendIssuesTest`. The payload limits were fixed
-after the review (title ≤ 30, description ≤ 300); the other four remain red.
+All 15 bugs from §2 are fixed and their tests are green. The eight issues found in the
+second pass were fixed in `74fdcc3` as well (title/description limits, the 72-byte
+password guard, `UserNotFoundException` → 404, the two locale-sensitive searches). A
+third pass over `src/main` found one more issue, fixed in the working tree immediately
+after the test was added.
 
-| # | Test | Expects | Today | Status / root cause |
-|---|---|---|---|---|
-| N1 | `TransactionPayloadLimits.titleLongerThanTheLimitIsRejectedAsBadRequest` (+ `titleAtTheLimitIsAccepted`) | 31 chars → 400, 30 chars → 201 | ✅ green | Fixed by `@Length(min = 3, max = 30)` and `@Column(length = 30)`. |
-| N2 | `TransactionPayloadLimits.descriptionLongerThanTheLimitIsRejectedAsBadRequest` (+ `descriptionAtTheLimitIsAccepted`) | 301 chars → 400, 300 chars → 201 | ✅ green | Fixed by `@Length(max = 300)` and `@Column(length = 300)` (was `varchar(255)`). |
-| N3 | `PasswordValidation.multibytePasswordLongerThan72BytesIsRejectedAsBadRequest` | 400 | **500** `IllegalArgumentException: password cannot be more than 72 bytes` | `@Size(max = 72)` counts chars; BCrypt limits bytes. 24 emoji = 48 chars / 96 bytes. |
-| N4 | `unknownPrincipalReturnsNotFound` | 404 | **500** `UserNotFoundException` | `GlobalExceptionHandler` handles the other three domain exceptions but not `UserNotFoundException` (`/api/auth/me` with a stale principal). |
-| N5 | `titleSearchIsNotLocaleSensitive` | 1 row | **0 rows** | `TransactionSpecs` uses default-locale `toLowerCase()`; Turkish lowercases `I` to `ı`. |
-| N6 | `descriptionSearchIsNotLocaleSensitive` | 1 row | **0 rows** | Same as N5 for the description filter. |
+### 6.1 Third pass — fixed in the working tree (uncommitted)
 
-Suggested fixes (in order): add a `@Size` that counts UTF-8 bytes or move to Argon2,
-map `UserNotFoundException` to 404, and use `toLowerCase(Locale.ROOT)` in
-`TransactionSpecs` (the Java-side and `lower()` in PostgreSQL must agree).
+| # | Test | Was | Now |
+|---|---|---|---|
+| N7 | `PasswordValidation.rejectedPasswordIsNotLeakedInTheResponse` | 400 body `"detail": "Password exceeds 72-byte limit: <password>"`; the secret was also in logs/stack traces | `InvalidPasswordException` takes no argument and uses the generic message `"Password exceeds 72-byte limit"`, so neither the HTTP response nor the logs contain the password. |
 
-### Findings without a failing test
+The root cause was that `InvalidPasswordException` interpolated the raw password into
+`getMessage()` and `GlobalExceptionHandler` copies `getMessage()` into
+`ProblemDetail.detail`.
+
+### 6.2 Fixed in `74fdcc3`
+
+| # | Test | Was | Now |
+|---|---|---|---|
+| N1 | `TransactionPayloadLimits.titleLongerThanTheLimitIsRejectedAsBadRequest` + `titleAtTheLimitIsAccepted` | 31 chars stored | 400; 30 chars → 201, via `@Length(min = 3, max = 30)` + `@Column(length = 30)` |
+| N2 | `TransactionPayloadLimits.descriptionLongerThanTheLimitIsRejectedAsBadRequest` + `descriptionAtTheLimitIsAccepted` | 300 chars → 500 (`varchar(255)`) | 400 for 301; 300 → 201, via `@Length(max = 300)` + `@Column(length = 300)` |
+| N3 | `PasswordValidation.multibytePasswordLongerThan72BytesIsRejectedAsBadRequest` | 500 `IllegalArgumentException` | 400 from the UTF-8 byte check in `AuthService.register` |
+| N4 | `unknownPrincipalReturnsNotFound` | 500 `UserNotFoundException` | 404 via `GlobalExceptionHandler` |
+| N5 | `titleSearchIsNotLocaleSensitive` | 0 rows (`tr-TR`) | 1 row, `toLowerCase(Locale.ROOT)` |
+| N6 | `descriptionSearchIsNotLocaleSensitive` | 0 rows (`tr-TR`) | 1 row, `toLowerCase(Locale.ROOT)` |
+
+Confirmed while writing the third-pass tests: **login with a >72-byte password already
+returns 401, not 500**, so the byte guard is only needed on registration.
+
+### 6.3 Findings without a failing test
 
 - `TransactionController` still injects `TransactionService` twice (`service` and
-  `transactionService`); unused imports remain in `AuthController`,
-  `SpringDemoApplication`, `AuthService` (`@Valid`).
-- `AuthService.isEmailUniqueConstraintViolation` still ships three `System.out.println`
-  debug statements, including printing exception details on every duplicate insert.
+  `transactionService`); `ResponseStatusException` is imported but unused in
+  `AuthController`.
+- `AuthService.register` checks the UTF-8 byte limit **after** the duplicate-email
+  lookup. Reusing an existing email with an over-long password returns 409 (account
+  enumeration) instead of 400; move the password check first. A Bean Validation
+  constraint would also keep the check out of the service.
 - `@Digits` rejects `10.500` with 400 because the validator counts the literal scale.
-  The UI always sends `toFixed(2)`, but API clients that send trailing zeros get an
-  avoidable 400.
-- `Page<TransactionResponse>` is still serialized as `PageImpl`; the application logs the
-  Spring Data warning (`PageModule$WarningLoggingModifier`) on every paged request.
-  Use `PagedModel`/`pageSerializationMode = VIA_DTO`.
-- Registration with a 72+ byte password is a 500 (N3); with a 73+ *character* ASCII
-  password it is a 400 from `@Size`. The two limits are inconsistent.
-- `/api/auth/me` is the only caller of `AuthService.getCurrentUser`; a deleted user keeps
-  a valid session until the next request, which then 500s (N4).
+  The UI sends `toFixed(2)`, but API clients that send trailing zeros get an avoidable
+  400.
+- `Page<TransactionResponse>` is still serialized as `PageImpl`; Spring Data logs its
+  unstable-format warning on every paged request. Use `PagedModel`/`VIA_DTO`.
+- No explicit `spring.data.web.pageable.max-page-size`; a client can request a huge
+  `size` (the frontend itself asks for 1000). Cap it server-side.
 - `ddl-auto=update`, hardcoded DB credentials, local-only `server.address`, single-origin
   CORS and no migrations remain as in §4.3.
 - No `@Version`/audit columns: concurrent updates are last-write-wins.
 - The negative-amount representation is intentional (income > 0, expenses < 0), but the
-  backend does not document or validate it; `amount = 0` is accepted and is shown as a
-  red `- R$ 0,00` by the frontend.
+  backend does not document or validate it; `amount = 0` is accepted (shown as neutral
+  `R$ 0,00` after the frontend fix).
 

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { uncaughtErrorsFrom } from "../../../../test/uncaughtErrors";
 import TransactionForm from "./TransactionForm";
 
 describe("TransactionForm", () => {
@@ -40,6 +41,24 @@ describe("TransactionForm", () => {
 
         expect(screen.getByLabelText("Title")).toHaveAttribute("maxLength", "30");
         expect(screen.getByLabelText("Description")).toHaveAttribute("maxLength", "300");
+    });
+
+    it("[KNOWN BUG] clearing the date does not crash the form", async () => {
+        // The native date input can be cleared (the calendar button has a
+        // "Clear" action and mobile keyboards do too). onChange then calls
+        // parseLocalDate(""), which throws "Invalid LocalDate" from inside the
+        // event handler. The same pattern is used by TransactionHistory and
+        // MonthlyCashFlowChart.
+        render(<TransactionForm id="transaction-form" onSubmit={vi.fn()} />);
+
+        const date = screen.getByLabelText("Date");
+        fireEvent.change(date, { target: { value: "2026-11-17" } });
+
+        expect(await uncaughtErrorsFrom(() => {
+            fireEvent.change(date, { target: { value: "" } });
+        })).toEqual([]);
+
+        expect(date).toHaveValue("");
     });
 
     it("[KNOWN BUG] requires a date before the form can be submitted", () => {

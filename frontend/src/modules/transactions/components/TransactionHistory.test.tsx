@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Page } from "../../../app/api";
+import { uncaughtErrorsFrom } from "../../../test/uncaughtErrors";
 import { useTransactions } from "../transactionHooks";
 import type { Transaction } from "../transactionService";
 import TransactionHistory from "./TransactionHistory";
@@ -63,6 +64,25 @@ describe("TransactionHistory", () => {
         );
 
         expect(lastQueryParams()).toMatchObject({ sort: ["amount,asc"] });
+    });
+
+    it("[KNOWN BUG] clearing a date filter does not crash the history", async () => {
+        // Same root cause as the form: onChange calls parseLocalDate("") when
+        // the native date input is cleared, which throws from inside the
+        // handler instead of resetting the filter.
+        const { container } = render(<TransactionHistory transactions={[]} />);
+
+        const from = container.querySelector(
+            'input[type="date"]'
+        ) as HTMLInputElement;
+
+        fireEvent.change(from, { target: { value: "2026-11-17" } });
+
+        expect(await uncaughtErrorsFrom(() => {
+            fireEvent.change(from, { target: { value: "" } });
+        })).toEqual([]);
+
+        expect(from).toHaveValue("");
     });
 
     // it("[KNOWN BUG] the 'Title only' switch changes what is searched", async () => {

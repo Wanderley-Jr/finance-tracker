@@ -43,7 +43,7 @@ public class AuthService {
         }
 
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw new InvalidPasswordException(request.password());
+            throw new InvalidPasswordException();
         }
 
         User user = new User(

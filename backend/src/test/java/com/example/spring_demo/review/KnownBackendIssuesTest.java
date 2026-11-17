@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Locale;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,13 +29,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Reproductions of issues found while reviewing the code after the 2026-11-17
- * "all tests pass" commit. Each red test documents real HTTP behaviour of
- * {@code src/main}; no production code was changed to write them.
+ * Reproductions of issues found in the second and third review passes. All of
+ * them were written against the real HTTP behaviour of {@code src/main} before
+ * the corresponding production fix and are kept as regression tests.
  *
  * <p>These are intentionally separate from the original bug reproductions in
- * {@code AuthControllerTest}/{@code TransactionIntegrationTest}: those pinned
- * bugs that are now fixed, while these pin gaps that are still open.</p>
+ * {@code AuthControllerTest}/{@code TransactionIntegrationTest}: those pin the
+ * first-pass bugs, while these cover the payload limits, the UTF-8 password
+ * bound and the locale-sensitive searches found later.</p>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -83,7 +86,7 @@ class KnownBackendIssuesTest {
                 """.formatted(VALID_DATE, title, description);
     }
 
-    // --- Missing @Size bounds: strings that fit the DTO but not the column ---
+    // --- Payload limits that used to fit the DTO but not the column ---
 
     private static final int TITLE_MAX_LENGTH = 30;
     private static final int DESCRIPTION_MAX_LENGTH = 300;
@@ -97,8 +100,8 @@ class KnownBackendIssuesTest {
         @DisplayName("a title longer than 30 chars is rejected with 400")
         void titleLongerThanTheLimitIsRejectedAsBadRequest() throws Exception {
             // Product limit: title <= 30 chars (matches the form's maxLength).
-            // TransactionRequest.title only has @NotBlank, so a 31-char title
-            // currently reaches the database and is stored.
+            // Before the fix TransactionRequest.title only had @NotBlank, so a
+            // 31-char title reached the database and was stored.
             mockMvc.perform(post("/api/transactions")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -128,9 +131,9 @@ class KnownBackendIssuesTest {
         @DisplayName("a description longer than 300 chars is rejected with 400")
         void descriptionLongerThanTheLimitIsRejectedAsBadRequest() throws Exception {
             // Product limit: description <= 300 chars (matches the form's
-            // maxLength). There is no @Size on the DTO and the column is
-            // varchar(255), so today a 300-char description is already a 500;
-            // a 301-char one must become a validation error, not a 500.
+            // maxLength). Before the fix there was no @Size on the DTO and the
+            // column was varchar(255), so even 300 chars was a 500; a 301-char
+            // one must be a validation error, not a 500.
             mockMvc.perform(post("/api/transactions")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -146,8 +149,8 @@ class KnownBackendIssuesTest {
         @Test
         @DisplayName("a 300-char description is accepted")
         void descriptionAtTheLimitIsAccepted() throws Exception {
-            // A 300-char description must fit; the column defaults to
-            // varchar(255), so this is a 500 until it is widened (length = 300).
+            // A 300-char description must fit; the column used to default to
+            // varchar(255), so this was a 500 until it was widened (length = 300).
             String description = "x".repeat(DESCRIPTION_MAX_LENGTH);
 
             mockMvc.perform(post("/api/transactions")
@@ -170,8 +173,8 @@ class KnownBackendIssuesTest {
         void multibytePasswordLongerThan72BytesIsRejectedAsBadRequest() throws Exception {
             // RegisterRequest.password is @Size(max = 72) characters, but BCrypt
             // limits input to 72 bytes. 24 emoji = 48 UTF-16 chars < 72, yet
-            // 96 UTF-8 bytes, so the encoder throws IllegalArgumentException
-            // and the request ends as a 500.
+            // 96 UTF-8 bytes, so before the UTF-8 guard the encoder threw
+            // IllegalArgumentException and the request ended as a 500.
             String password = "\uD83D\uDE00".repeat(24);
 
             mockMvc.perform(post("/api/auth/register")
@@ -189,17 +192,41 @@ class KnownBackendIssuesTest {
                     userRepository.existsByEmailIgnoreCase("emoji@example.com")
             ).isFalse();
         }
+
+        @Test
+        @DisplayName("the rejected password is never echoed back in the error response")
+        void rejectedPasswordIsNotLeakedInTheResponse() throws Exception {
+            // InvalidPasswordException used to build its message with the raw
+            // password ("Password exceeds 72-byte limit: <password>"), and
+            // GlobalExceptionHandler copies that message into ProblemDetail.detail.
+            // The plaintext secret therefore came back to the caller and was also
+            // written to any log that recorded exception messages.
+            String password = "\uD83D\uDE00".repeat(24);
+
+            mockMvc.perform(post("/api/auth/register")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                        "email": "emoji@example.com",
+                                        "password": "%s"
+                                    }
+                                    """.formatted(password)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.detail", not(containsString(password))));
+        }
     }
 
-    // --- Unhandled exception: no advice for UserNotFoundException ---
+    // --- Unhandled exception: there used to be no advice for UserNotFoundException ---
 
     @Test
     @WithMockUser(username = "ghost@example.com")
     @DisplayName("/api/auth/me with an unknown principal returns 404, not a 500")
     void unknownPrincipalReturnsNotFound() throws Exception {
-        // GlobalExceptionHandler maps InvalidSortField, EmailAlreadyRegistered and
-        // TransactionNotFound, but not UserNotFoundException, which
-        // AuthService.getCurrentUser throws for a stale principal.
+        // GlobalExceptionHandler used to map InvalidSortField,
+        // EmailAlreadyRegistered and TransactionNotFound, but not
+        // UserNotFoundException, which AuthService.getCurrentUser throws for a
+        // stale principal.
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isNotFound());
     }
@@ -213,8 +240,8 @@ class KnownBackendIssuesTest {
         saveTransaction("INVOICE", "");
         Locale.setDefault(Locale.forLanguageTag("tr-TR"));
 
-        // TransactionSpecs uses String#toLowerCase() with the default locale.
-        // In Turkish, "INVOICE" becomes "ınvoıce", which no longer matches the
+        // TransactionSpecs used String#toLowerCase() with the default locale.
+        // In Turkish, "INVOICE" became "ınvoıce", which no longer matched the
         // database's lowercase("INVOICE") = "invoice".
         mockMvc.perform(get("/api/transactions").param("title", "INVOICE"))
                 .andExpect(status().isOk())

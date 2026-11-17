@@ -67,6 +67,29 @@ describe("TransactionCalendar footer totals", () => {
         expect(footerValue("Balance")).toContain("70,00");
     });
 
+    it("[KNOWN BUG] asks for a date before listing transactions", () => {
+        // Until the user picks a day, selectedDate is undefined and the
+        // TransactionList is queried with no date bounds. It therefore shows
+        // the first page of the whole history instead of the
+        // "Select a date to view transactions made" prompt.
+        mockedUseTransactions.mockReturnValue({
+            data: {
+                ...emptyPage,
+                content: [transaction(1, 100, "2026-11-17")],
+                totalElements: 1,
+                totalPages: 1,
+            },
+            error: null,
+        } as unknown as ReturnType<typeof useTransactions>);
+
+        render(<TransactionCalendar transactions={[]} />);
+
+        expect(screen.queryByText("Transaction 1")).not.toBeInTheDocument();
+        expect(
+            screen.getByText("Select a date to view transactions made")
+        ).toBeInTheDocument();
+    });
+
     it("[KNOWN BUG] only counts transactions from the selected month of the selected year", () => {
         // monthlyTransactions compares `getMonth()` only. A transaction from
         // November 2025 is added to the November 2026 footer totals.
