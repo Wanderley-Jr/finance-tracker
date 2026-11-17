@@ -2,6 +2,20 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## End-to-end smoke test
+
+`e2e/smoke.mjs` drives a real browser through registration, login, the dashboard,
+calendar, create/edit/delete and the "Title only" search. It needs Postgres, the
+backend on `http://localhost:8080` and the Vite dev server on `http://localhost:5173`.
+
+```powershell
+npx playwright install chromium   # once
+npm run test:e2e
+```
+
+Override the targets with `E2E_BASE_URL` and `E2E_API_URL`. The script exits non-zero
+when a step fails and writes a `failure.png` screenshot next to itself.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)

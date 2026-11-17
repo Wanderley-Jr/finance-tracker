@@ -85,8 +85,9 @@ The suite was re-run on 2026-11-17 against the fixed build: **10/10 steps passed
 | Logout protects the app again | PASS |
 
 The only console entry is the expected `401 GET /api/auth/me` while logged out. The
-smoke script is ad-hoc and currently lives outside the repository; committing it would
-make the E2E check repeatable in CI.
+script lives in `frontend/e2e/smoke.mjs` and runs with `npm run test:e2e` (install the
+browser once with `npx playwright install chromium`). It exits non-zero if any step
+fails, so it can run in CI.
 
 ## 4. Remaining findings without a failing test
 
@@ -108,7 +109,7 @@ make the E2E check repeatable in CI.
 
 ## 6. Suggested next steps
 
-1. Commit the Playwright smoke script and run it in CI alongside the unit tests.
+1. Run `npm run test:e2e` in CI (backend, Postgres and Vite as services).
 2. Add a server-side aggregation endpoint for the calendar/dashboard so they do not
    depend on a fixed page size.
 3. Add `aria-labelledby` to the modals and make the currency configurable.
